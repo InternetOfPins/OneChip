@@ -4,8 +4,6 @@
  * @brief AVR Timer/Counter HAPI components
  * @note Ported from 2014 avrTC — tested register layouts preserved exactly.
  *       Runtime instances replaced by zero-RAM compile-time HAPI components.
- *
- * creative commons license 3.0: Attribution-ShareAlike CC BY-SA
  */
 
 #pragma once
