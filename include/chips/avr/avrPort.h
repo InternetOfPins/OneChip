@@ -12,14 +12,14 @@
   #include <Arduino.h>
 #else
   #include <cstdint>
-  using byte = uint8_t;
+  using byte = unsigned char;
 #endif
 
 namespace hw {
 namespace avr {
 
   using Addr = uintptr_t;
-  using Unit = uint8_t;
+  using Unit = unsigned char;
 
   // ============================================================
   // Port components — HAPI building blocks
