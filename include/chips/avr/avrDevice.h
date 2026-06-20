@@ -1,9 +1,6 @@
 #pragma once
-#include <onePin/onePin.h>
+#include <chips/avr/avrSysClock.h>
 #include <chips/avr/avrPort.h>
-#ifdef __AVR__
-  #include <avr/interrupt.h>
-#endif
 
 namespace hw::avr {
 
@@ -28,7 +25,10 @@ namespace hw::avr {
     AVR() = delete;
 
     template<typename MaskDesc, typename Port>
-    using OutPin = hapi::APIOf<onePin::AvrOutPin, onePin::Out, oneBit::Mask<MaskDesc>, Port>;
+    using OutPin    = hapi::APIOf<onePin::AvrOutPin, onePin::Out, oneBit::Mask<MaskDesc>, Port>;
+
+    template<typename MaskDesc, typename Port>
+    using InvOutPin = hapi::APIOf<onePin::AvrOutPin, onePin::Out, oneBit::Inverted<>, oneBit::Mask<MaskDesc>, Port>;
 
     template<typename MaskDesc, typename Port>
     using InPin  = hapi::APIOf<onePin::AvrInPin,  onePin::In,  oneBit::Mask<MaskDesc>, Port>;

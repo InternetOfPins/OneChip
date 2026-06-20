@@ -1,6 +1,10 @@
 #pragma once
-#include <onePin/onePin.h>
-#include <chips/stm32/stm32Port.h>
+#include <chips/stm32/stm32SysClock.h>
+#if defined(STM32F1xx)
+  #include <chips/stm32/stm32F1Port.h>
+#else
+  #include <chips/stm32/stm32Port.h>
+#endif
 
 namespace hw::stm32 {
 
@@ -21,11 +25,27 @@ namespace hw::stm32 {
       IsSTM32Port::template Check<stm32_port_t<PC>>::value;
   }
 
-  template<typename Boot, typename... Peripherals>
-  struct STM32 : onePin::Device<Boot, Peripherals...> {
+  struct STM32 {
     STM32() = delete;
-    static_assert((detail::is_stm32_peripheral<Peripherals> && ...),
-      "STM32: all peripherals must use STM32 ports");
+
+    template<typename MaskDesc, typename Port>
+    using OutPin    = hapi::APIOf<onePin::Stm32OutPin, onePin::Out, oneBit::Mask<MaskDesc>, Port>;
+
+    template<typename MaskDesc, typename Port>
+    using InvOutPin = hapi::APIOf<onePin::Stm32OutPin, onePin::Out, oneBit::Inverted<>, oneBit::Mask<MaskDesc>, Port>;
+
+    template<typename MaskDesc, typename Port>
+    using InPin  = hapi::APIOf<onePin::Stm32InPin,  onePin::In,  oneBit::Mask<MaskDesc>, Port>;
+
+    template<typename MaskDesc, typename Port>
+    using IOPin  = hapi::APIOf<onePin::Stm32IOPin,              oneBit::Mask<MaskDesc>, Port>;
+
+    template<typename Boot, typename... Peripherals>
+    struct Board : onePin::Device<Boot, Peripherals...> {
+      Board() = delete;
+      static_assert((detail::is_stm32_peripheral<Peripherals> && ...),
+        "STM32::Board: all peripherals must use STM32 ports");
+    };
   };
 
 } // hw::stm32

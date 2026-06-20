@@ -108,9 +108,11 @@ namespace stm32 {
 
       // ---- masked direction (used by Mask<>::dir_out()/dir_in()) ----
       static void dir_out(Unit mask) {
+        clockEnable();  // safe to call multiple times — RCC bit set is idempotent
         regs().moder = (regs().moder & ~moder_mask(mask)) | moder_out_bits(mask);
       }
       static void dir_in(Unit mask) {
+        clockEnable();
         regs().moder &= ~moder_mask(mask);   // 00 = input
       }
 

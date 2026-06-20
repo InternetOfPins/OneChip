@@ -26,6 +26,12 @@
   #include <avr/interrupt.h>
 #endif
 
+#ifndef IOP
+extern "C" unsigned long millis();
+extern "C" unsigned long micros();
+extern "C" void init();
+#endif
+
 namespace hw {
 namespace avr {
 
@@ -55,10 +61,9 @@ namespace avr {
       inline static volatile uint32_t _overflow_count = 0;  // raw count for micros()
 
 #ifndef IOP
-      // framework (Arduino/Mbed/Zephyr) owns the timer — forward declare its millis/micros
-      static uint32_t millis() { extern "C" unsigned long millis(); return ::millis(); }
-      static uint32_t micros() { extern "C" unsigned long micros(); return ::micros(); }
-      static void begin()      { extern "C" void init(); init(); }
+      static uint32_t millis() { return ::millis(); }
+      static uint32_t micros() { return ::micros(); }
+      static void begin()      { ::init(); }
       static void onOverflow() {}
 #else
       static void begin() {
