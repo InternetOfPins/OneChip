@@ -14,8 +14,9 @@ using namespace onePin;
 using namespace hapi;
 using namespace hw::avr;
 
+using Unit = AvrOutPin::Unit;
+
 // User layer: tracks port state, toggles a bit on blink().
-// This is the HAPI pattern — add behaviour by adding a layer, not by modifying anything.
 struct Blinker {
   template<typename O>
   struct Part : O {
@@ -23,13 +24,13 @@ struct Blinker {
     Unit _state = 0;
     void blink(Unit mask) {
       _state ^= mask;
-      O::set(_state);
+      O::port(_state);
     }
   };
 };
 
-// Full composition: PinAPI (terminal) ← PortB (read/dir/write) ← Blinker
-using Led = APIOf<PinAPI, Blinker, chip::PortB>;
+// Full composition: AvrOutPin (terminal) ← PortB ← Blinker
+using Led = APIOf<AvrOutPin, Blinker, chip::PortB>;
 Led led;
 
 static constexpr Unit kLed = 1 << 5;  // PB5 = pin 13

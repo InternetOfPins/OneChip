@@ -1,8 +1,8 @@
 /**
  * @file avrPort.h
- * @author Rui Azevedo (neu-rah) (ruihfazevedo@gmail.com)
+ * @author Rui Azevedo (ruihfazevedo@gmail.com)
  * @brief AVR GPIO port HAPI components — hardware implementations of the OnePin API.
- *        Use with OnePin's PinAPI as the terminal.
+ *        Use with onePin::InPin / OutPin / IOPin as the terminal.
  */
 
 #pragma once
@@ -26,45 +26,32 @@ namespace avr {
   // Each wraps a single AVR I/O register by compile-time address.
   // ============================================================
 
-  template<Addr pIn>
-  struct AVRPortRead {
-    template<typename O>
-    struct Part : O {
-      using Base = O;
-      using Base::Base;
-      static Unit get() { return *reinterpret_cast<volatile Unit*>(pIn); }
-    };
-  };
-
-  template<Addr ddr>
-  struct AVRPortDir {
-    template<typename O>
-    struct Part : O {
-      using Base = O;
-      using Base::Base;
-      static void dir(Unit bits) { *reinterpret_cast<volatile Unit*>(ddr) = bits; }
-    };
-  };
-
-  template<Addr port>
-  struct AVRPortWrite {
-    template<typename O>
-    struct Part : O {
-      using Base = O;
-      using Base::Base;
-      static void set(Unit val) { *reinterpret_cast<volatile Unit*>(port) = val; }
-    };
-  };
-
-  // AVRPort<pIn, ddr, port>: composes read/dir/write for one port.
+  // AVRPort<pIn, ddr, port, AllowedMask>: maps PIN/DDR/PORT registers for one port.
   // ATmega memory map: PIN=base, DDR=base+1, PORT=base+2.
-  template<Addr pIn, Addr ddr = pIn+1, Addr port = pIn+2>
+  // AllowedMask: which pins this port instance owns (default all 8). Used by PortAlloc.
+  template<Addr pIn, Addr pDdr = pIn+1, Addr pOut = pIn+2, Unit AllowedMask = 0xFF>
   struct AVRPort {
-    using Chain_ = hapi::Chain<AVRPortRead<pIn>, AVRPortDir<ddr>, AVRPortWrite<port>>;
+    using Unit = ::hw::avr::Unit;
+    static constexpr Unit allowedMask = AllowedMask;
+    template<Unit NewMask>
+    using rebind = AVRPort<pIn, pDdr, pOut, NewMask>;
+
     template<typename O>
-    struct Part : Chain_::template Part<O> {
-      using Base = typename Chain_::template Part<O>;
+    struct Part : O {
+      using Base = O;
       using Base::Base;
+
+      static volatile Unit& pin_reg()  { return *reinterpret_cast<volatile Unit*>(pIn); }
+      static volatile Unit& ddr_reg()  { return *reinterpret_cast<volatile Unit*>(pDdr); }
+      static volatile Unit& port_reg() { return *reinterpret_cast<volatile Unit*>(pOut); }
+
+      static Unit pin()        { return pin_reg(); }   // input state (PIN register)
+      static Unit port()       { return port_reg(); }  // output latch (PORT register)
+      static void port(Unit v) { port_reg() = v; }     // whole-port write
+      static Unit ddr()           { return ddr_reg(); }  // direction latch read
+      static void dir_out(Unit m) { ddr_reg() |=  m; }  // set pins as output (atomic SBI)
+      static void dir_in(Unit m)  { ddr_reg() &= ~m; }  // set pins as input  (atomic CBI)
+      static void dir(Unit m)     { ddr_reg()  =  m; }  // whole-port direction write
     };
   };
 
@@ -127,9 +114,10 @@ namespace avr {
 //   using namespace onePin;
 //   using namespace hw::avr;
 //
-//   using Led = APIOf<PinAPI, chip::PortB>;
+//   using Led = APIOf<AvrOutPin, chip::PortB>;
 //   Led led;
-//   led.dir(1<<5);   // PB5 output
-//   led.set(1<<5);   // PB5 high
-//   led.set(0);      // PB5 low
+//   led.dir(1<<5);   // PB5 as output
+//   led.on(1<<5);    // PB5 high
+//   led.off(1<<5);   // PB5 low
+//   led.put(0xFF);   // whole port high
 // ============================================================
