@@ -54,14 +54,20 @@ namespace avr {
       inline static volatile uint16_t _fract          = 0;
       inline static volatile uint32_t _overflow_count = 0;  // raw count for micros()
 
+#ifndef IOP
+      // framework (Arduino/Mbed/Zephyr) owns the timer — forward declare its millis/micros
+      static uint32_t millis() { extern "C" unsigned long millis(); return ::millis(); }
+      static uint32_t micros() { extern "C" unsigned long micros(); return ::micros(); }
+      static void begin()      { extern "C" void init(); init(); }
+      static void onOverflow() {}
+#else
       static void begin() {
-        Base::setWaveMode(0);                // normal mode (WGM = 000)
-        Base::setClockSource(PRESCALE_CODE); // prescaler /PrescaleValue
-        Base::timsk().toie = 1;             // enable overflow interrupt
-        Base::begin();                       // propagate (BootDef eraser)
+        Base::setWaveMode(0);
+        Base::setClockSource(PRESCALE_CODE);
+        Base::timsk().toie = 1;
+        Base::begin();
       }
 
-      // called from ISR — keep _overflow_count for micros(), _ms/_fract for millis()
       static void onOverflow() {
         _overflow_count++;
         uint32_t m = _ms;
@@ -75,34 +81,32 @@ namespace avr {
 
       static uint32_t millis() {
         uint32_t m;
-#ifdef __AVR__
+#  ifdef __AVR__
         uint8_t sreg = SREG; cli();
         m = _ms;
         SREG = sreg;
-#else
+#  else
         m = _ms;
-#endif
+#  endif
         return m;
       }
 
-      // micros() uses raw overflow count to avoid ms-rounding error.
-      // Same approach as Arduino wiring.c: (overflow_count*256 + TCNT) * µs_per_tick.
-      // Wraps at ~71 minutes (uint32_t), same limit as Arduino.
       static uint32_t micros() {
         uint32_t ov;
         uint8_t  t;
-#ifdef __AVR__
+#  ifdef __AVR__
         uint8_t sreg = SREG; cli();
         ov = _overflow_count;
         t  = Base::regs().cnt;
-        if (Base::tifr().tov && t < 255) ov++;  // pending overflow not yet counted
+        if (Base::tifr().tov && t < 255) ov++;
         SREG = sreg;
-#else
+#  else
         ov = _overflow_count;
         t  = 0;
-#endif
+#  endif
         return (ov * 256UL + t) * US_PER_TICK;
       }
+#endif
 
       // Period<ms> — fires every ms milliseconds, uses this clock's millis().
       // Wraps at ~49 days (uint32_t), same limit as millis().
@@ -155,6 +159,13 @@ namespace avr {
   }
 
 }} // hw::avr
+
+// Wires a timer overflow ISR to Board::onOverflow().
+// Place once in the user's main translation unit:
+//   IOP_TIMER0_ISR(Board)
+//   IOP_TIMER2_ISR(Board)
+#define IOP_TIMER0_ISR(board_t) ISR(TIMER0_OVF_vect) { board_t::onOverflow(); }
+#define IOP_TIMER2_ISR(board_t) ISR(TIMER2_OVF_vect) { board_t::onOverflow(); }
 
 // chip::SysTick0<> / SysTick2<> resolve via the existing namespace alias
 // (chip = mega / mega2560 / mega1284) — no extra declarations needed.

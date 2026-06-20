@@ -1,25 +1,19 @@
 #include <chips/avr/avrDevice.h>
 #include <chips/avr/avrSysClock.h>
-#include <chips/avr/frameworkClock.h>
-#include <OneBit.h>
 
-using namespace hapi;
-using namespace hw::avr; using namespace oneBit;
+using namespace hw::avr;
+using namespace onePin;
+using namespace oneBit;
 
-using Chip = AVR;
+using Chip   = AVR;
+using SysTick = chip::SysTick0<>;
 
-#ifdef IOP
-  using SysTick = chip::SysTick0<>;
-#else
-  using SysTick = FrameworkClock;
-#endif
-
-using Led1  = Chip::OutPin<Pins<5>, chip::PortB>;  // pin 13 — built-in
-using Led2  = Chip::OutPin<Pins<4>, chip::PortB>;  // pin 12
-using Board = Chip::Board<onePin::Boot<SysTick>, Led1, Led2>;
+using Led1  = Chip::OutPin<Pins<5>, chip::PortB>;
+using Led2  = Chip::OutPin<Pins<4>, chip::PortB>;
+using Board = Chip::Board<Boot<SysTick>, Led1, Led2>;
 
 #ifdef IOP
-ISR(TIMER0_OVF_vect) { Board::onOverflow(); }
+IOP_TIMER0_ISR(Board)
 #endif
 
 Led1 led1;
