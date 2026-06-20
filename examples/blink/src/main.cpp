@@ -22,7 +22,7 @@ using namespace oneBit;
 #elif defined(__arm__)
   using SysTick = chip::SysTick<>;
   using Led1    = STM32::InvOutPin<Pins<13>, chip::PortC>;  // PC13 active-LOW
-  using Board   = STM32::Board<Boot<SysTick>, Led1>;
+  using Board   = STM32::Board<Boot<>, Led1>;               // SysTick auto-injected
   #ifdef IOP
   IOP_SYSTICK_ISR(Board)
   #endif

@@ -23,6 +23,14 @@ namespace hw::stm32 {
     template<typename PC>
     static constexpr bool is_stm32_peripheral =
       IsSTM32Port::template Check<stm32_port_t<PC>>::value;
+
+    template<typename T, typename = void>
+    struct has_millis_fn : std::false_type {};
+    template<typename T>
+    struct has_millis_fn<T, std::void_t<decltype(T::millis())>> : std::true_type {};
+
+    template<typename... Ts>
+    static constexpr bool any_has_clock = (has_millis_fn<Ts>::value || ...);
   }
 
   struct STM32 {
@@ -41,7 +49,17 @@ namespace hw::stm32 {
     using IOPin  = hapi::APIOf<onePin::Stm32IOPin,              oneBit::Mask<MaskDesc>, Port>;
 
     template<typename Boot, typename... Peripherals>
-    struct Board : onePin::Device<Boot, Peripherals...> {
+    struct Board;
+
+    // Auto-inject chip::SysTick<> when Boot has no clock component.
+    template<typename... BootItems, typename... Peripherals>
+    struct Board<onePin::Boot<BootItems...>, Peripherals...>
+      : std::conditional_t<
+          detail::any_has_clock<BootItems...>,
+          onePin::Device<onePin::Boot<BootItems...>,               Peripherals...>,
+          onePin::Device<onePin::Boot<chip::SysTick<>, BootItems...>, Peripherals...>
+        >
+    {
       Board() = delete;
       static_assert((detail::is_stm32_peripheral<Peripherals> && ...),
         "STM32::Board: all peripherals must use STM32 ports");
