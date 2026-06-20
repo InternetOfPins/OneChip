@@ -30,6 +30,7 @@ namespace avr {
   // AllowedMask: which pins this port instance owns (default all 8). Used by PortAlloc.
   template<Addr pIn, Addr pDdr = pIn+1, Addr pOut = pIn+2, Unit AllowedMask = 0xFF>
   struct AVRPort {
+    using is_avr_port = std::true_type;
     using Unit = ::hw::avr::Unit;
     static constexpr Unit allowedMask = AllowedMask;
     template<Unit NewMask>

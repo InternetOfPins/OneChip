@@ -80,6 +80,7 @@ namespace stm32 {
   // ============================================================
   template<Addr BASE, Addr RCC_ENR_ADDR, uint8_t RCC_EN_BIT, Unit AllowedMask = 0xFFFF>
   struct STM32Port {
+    using is_stm32_port = std::true_type;
     using Unit = ::hw::stm32::Unit;
     static constexpr Unit allowedMask = AllowedMask;
     template<Unit NewMask>
