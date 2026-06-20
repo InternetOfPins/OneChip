@@ -117,6 +117,13 @@ namespace avr {
         }
         void reset() { last = millis(); }
       };
+
+      template<uint32_t timeOn, uint32_t timeOff = timeOn>
+      struct Blink {
+        bool operator()() const {
+          return millis() % (timeOn + timeOff) < timeOn;
+        }
+      };
     };
   };
 

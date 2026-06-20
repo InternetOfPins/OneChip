@@ -14,14 +14,14 @@ using Board   = Chip::Board<onePin::Boot<SysTick>, Led1, Led2>;
 Led1 led1;
 Led2 led2;
 
-SysTick::Period<500> blink1;
-SysTick::Period<250> blink2;
+SysTick::Blink<10, 290> blink1;   // 10ms on, 290ms off
+SysTick::Blink<500>     blink2;   // 500ms on, 500ms off
 
 int main() {
   Board::begin();
   sei();
   Board::run([](){
-    if (blink1()) led1.set(~led1.get());
-    if (blink2()) led2.set(~led2.get());
+    led1.set(blink1());
+    led2.set(blink2());
   });
 }
