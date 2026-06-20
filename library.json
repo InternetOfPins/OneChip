@@ -1,12 +1,12 @@
 {
-  "name": "OneData",
-  "version": "0.1.12",
-  "description": "HAPI data components",
-  "keywords": "components, data",
+  "name": "OneChip",
+  "version": "0.1.0",
+  "description": "Hardware register components for HAPI chains — AVR and STM32 GPIO, timers, interrupts. No Arduino or ST HAL dependency.",
+  "keywords": "avr, stm32, gpio, timer, embedded, hapi",
   "repository":
   {
     "type": "git",
-    "url": "https://github.com/InternetOfPins/OneData.git"
+    "url": "https://github.com/InternetOfPins/OneChip.git"
   },
   "authors":
   [
@@ -18,8 +18,15 @@
     }
   ],
   "license": "MIT",
-  "homepage": "https://github.com/InternetOfPins/OneData",
+  "homepage": "https://github.com/InternetOfPins/OneChip",
   "dependencies": {
+    "HAPI":   "https://github.com/InternetOfPins/HAPI.git@^0.5.0",
+    "OneBit": "https://github.com/InternetOfPins/OneBit.git@^0.1.0",
+    "OnePin": "https://github.com/InternetOfPins/OnePin.git@^0.1.0"
+  },
+  "build": {
+    "srcDir": "src",
+    "includeDir": "include"
   },
   "frameworks": "*",
   "platforms": "*"

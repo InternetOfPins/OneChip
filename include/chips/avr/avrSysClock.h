@@ -22,6 +22,9 @@
 #pragma once
 #include <chips/avr/avrTC.h>
 #include <onePin/onePin.h>
+#ifdef __AVR__
+  #include <avr/interrupt.h>
+#endif
 
 namespace hw {
 namespace avr {
@@ -100,6 +103,20 @@ namespace avr {
 #endif
         return (ov * 256UL + t) * US_PER_TICK;
       }
+
+      // Period<ms> — fires every ms milliseconds, uses this clock's millis().
+      // Wraps at ~49 days (uint32_t), same limit as millis().
+      template<uint32_t ms>
+      struct Period {
+        uint32_t last = 0;
+        bool operator()() {
+          uint32_t now = millis();
+          if (now - last < ms) return false;
+          last = now;
+          return true;
+        }
+        void reset() { last = millis(); }
+      };
     };
   };
 
