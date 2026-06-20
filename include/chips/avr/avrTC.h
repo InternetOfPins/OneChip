@@ -133,15 +133,15 @@ namespace avr {
   /// @tparam TIFR_ADDR  address of the TIFR register
   /// @tparam TIMSK_ADDR address of the TIMSK register
   template<typename Regs, uintptr_t BASE, uint8_t TIFR_ADDR, uint8_t TIMSK_ADDR,
-           void(*Fn)() = nullptr>
+           void(*fn)() = nullptr>
   struct TimerCore {
     using IsTimer = std::true_type;
 
-    inline static void (*fn)() = nullptr;
+    inline static void (*handler_)() = nullptr;
     static void attach(void(*f)()) { fn = f; }
     static void act() {
-      if constexpr (Fn != nullptr) Fn();
-      if (fn) fn();
+      if constexpr (fn != nullptr) fn();
+      if (handler_) handler_();
     }
 
     template<typename O>
@@ -161,8 +161,8 @@ namespace avr {
 
       static void attach(void(*f)()) { fn = f; }
       static void act() {
-        if constexpr (Fn != nullptr) Fn();
-        if (fn) fn();
+        if constexpr (fn != nullptr) fn();
+        if (handler_) handler_();
         O::act();
       }
       static void on(uint16_t fr, uint8_t scale, uint8_t duty = 50) {
@@ -278,36 +278,36 @@ namespace avr {
 
   namespace mega {
 
-    template<void(*Fn)() = nullptr>
-    using TC0 = hapi::APIOf<TimerAPI<>, Prescaler<CS1Policy>, TimerCore<tc8_regs,  0x44, 0x35, 0x6E, Fn>>;
-    template<void(*Fn)() = nullptr>
-    using TC1 = hapi::APIOf<TimerAPI<>, Prescaler<CS1Policy>, TimerCore<tc16_regs, 0x80, 0x36, 0x6F, Fn>>;
-    template<void(*Fn)() = nullptr>
-    using TC2 = hapi::APIOf<TimerAPI<>, Prescaler<CS2Policy>, TimerCore<tc8_regs,  0xB0, 0x37, 0x70, Fn>>;
+    template<void(*fn)() = nullptr>
+    using TC0 = hapi::APIOf<TimerAPI<>, Prescaler<CS1Policy>, TimerCore<tc8_regs,  0x44, 0x35, 0x6E, fn>>;
+    template<void(*fn)() = nullptr>
+    using TC1 = hapi::APIOf<TimerAPI<>, Prescaler<CS1Policy>, TimerCore<tc16_regs, 0x80, 0x36, 0x6F, fn>>;
+    template<void(*fn)() = nullptr>
+    using TC2 = hapi::APIOf<TimerAPI<>, Prescaler<CS2Policy>, TimerCore<tc8_regs,  0xB0, 0x37, 0x70, fn>>;
 
   } // mega
 
   namespace mega2560 {
 
-    template<void(*Fn)() = nullptr> using TC0 = mega::TC0<Fn>;
-    template<void(*Fn)() = nullptr> using TC1 = mega::TC1<Fn>;
-    template<void(*Fn)() = nullptr> using TC2 = mega::TC2<Fn>;
-    template<void(*Fn)() = nullptr>
-    using TC3 = hapi::APIOf<TimerAPI<>, Prescaler<CS1Policy>, TimerCore<tc16_regs, 0x90, 0x38, 0x71, Fn>>;
-    template<void(*Fn)() = nullptr>
-    using TC4 = hapi::APIOf<TimerAPI<>, Prescaler<CS1Policy>, TimerCore<tc16_regs, 0xA0, 0x39, 0x72, Fn>>;
-    template<void(*Fn)() = nullptr>
-    using TC5 = hapi::APIOf<TimerAPI<>, Prescaler<CS1Policy>, TimerCore<tc16_regs, 0x120,0x40, 0x73, Fn>>;
+    template<void(*fn)() = nullptr> using TC0 = mega::TC0<fn>;
+    template<void(*fn)() = nullptr> using TC1 = mega::TC1<fn>;
+    template<void(*fn)() = nullptr> using TC2 = mega::TC2<fn>;
+    template<void(*fn)() = nullptr>
+    using TC3 = hapi::APIOf<TimerAPI<>, Prescaler<CS1Policy>, TimerCore<tc16_regs, 0x90, 0x38, 0x71, fn>>;
+    template<void(*fn)() = nullptr>
+    using TC4 = hapi::APIOf<TimerAPI<>, Prescaler<CS1Policy>, TimerCore<tc16_regs, 0xA0, 0x39, 0x72, fn>>;
+    template<void(*fn)() = nullptr>
+    using TC5 = hapi::APIOf<TimerAPI<>, Prescaler<CS1Policy>, TimerCore<tc16_regs, 0x120,0x40, 0x73, fn>>;
 
   } // mega2560
 
   namespace mega1284 {
 
-    template<void(*Fn)() = nullptr> using TC0 = mega::TC0<Fn>;
-    template<void(*Fn)() = nullptr> using TC1 = mega::TC1<Fn>;
-    template<void(*Fn)() = nullptr> using TC2 = mega::TC2<Fn>;
-    template<void(*Fn)() = nullptr>
-    using TC3 = hapi::APIOf<TimerAPI<>, Prescaler<CS1Policy>, TimerCore<tc16_regs, 0x90, 0x38, 0x71, Fn>>;
+    template<void(*fn)() = nullptr> using TC0 = mega::TC0<fn>;
+    template<void(*fn)() = nullptr> using TC1 = mega::TC1<fn>;
+    template<void(*fn)() = nullptr> using TC2 = mega::TC2<fn>;
+    template<void(*fn)() = nullptr>
+    using TC3 = hapi::APIOf<TimerAPI<>, Prescaler<CS1Policy>, TimerCore<tc16_regs, 0x90, 0x38, 0x71, fn>>;
 
   } // mega1284
 

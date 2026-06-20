@@ -29,30 +29,30 @@ namespace avr {
   //   PCMSK_ADDR — address of this group's Pin Change Mask Register
   //   PCICR_ADDR — address of the Pin Change Interrupt Control Register (shared)
   //   PCIE_BIT   — bit position of this group's enable bit in PCICR
-  //   Fn         — compile-time function (NTTP, void(*)(), default nullptr)
+  //   fn         — compile-time function (NTTP, void(*)(), default nullptr)
   //
   // Two binding mechanisms coexist:
-  //   Compile-time: Fn NTTP — baked into the type, zero overhead.
+  //   Compile-time: fn NTTP — baked into the type, zero overhead.
   //   Runtime:      fn slot — set via attach(), one pointer per group.
   //
-  // act() fires Fn (if non-null) then fn (if set).
+  // act() fires fn (if non-null) then fn (if set).
   // ISR calls act() on the bound type:
   //   ISR(PCINT0_vect) { chip::PcInt0<myHandler>::act(); }
   // ============================================================
 
   template<uint8_t Group, Addr PCMSK_ADDR, Addr PCICR_ADDR, uint8_t PCIE_BIT,
-           void(*Fn)() = nullptr>
+           void(*fn)() = nullptr>
   struct PcIntCore {
     using IsPcInt = std::true_type;
     static constexpr uint8_t group = Group;
 
-    inline static void (*fn)() = nullptr;
+    inline static void (*handler_)() = nullptr;
 
-    static void attach(void (*f)()) { fn = f; }
+    static void attach(void (*f)()) { handler_ = f; }
 
     static void act() {
-      if constexpr (Fn != nullptr) Fn();
-      if (fn) fn();
+      if constexpr (fn != nullptr) fn();
+      if (handler_) handler_();
     }
 
     template<typename O>
@@ -73,8 +73,8 @@ namespace avr {
       }
 
       static void act() {
-        if constexpr (Fn != nullptr) Fn();
-        if (fn) fn();
+        if constexpr (fn != nullptr) fn();
+        if (handler_) handler_();
         O::act();
       }
     };
@@ -90,21 +90,21 @@ namespace avr {
   // ============================================================
 
   namespace mega {
-    template<void(*Fn)() = nullptr> using PcInt0 = PcIntCore<0, 0x6B, 0x68, 0, Fn>;
-    template<void(*Fn)() = nullptr> using PcInt1 = PcIntCore<1, 0x6C, 0x68, 1, Fn>;
-    template<void(*Fn)() = nullptr> using PcInt2 = PcIntCore<2, 0x6D, 0x68, 2, Fn>;
+    template<void(*fn)() = nullptr> using PcInt0 = PcIntCore<0, 0x6B, 0x68, 0, fn>;
+    template<void(*fn)() = nullptr> using PcInt1 = PcIntCore<1, 0x6C, 0x68, 1, fn>;
+    template<void(*fn)() = nullptr> using PcInt2 = PcIntCore<2, 0x6D, 0x68, 2, fn>;
   }
 
   namespace mega2560 {
-    template<void(*Fn)() = nullptr> using PcInt0 = mega::PcInt0<Fn>;
-    template<void(*Fn)() = nullptr> using PcInt1 = mega::PcInt1<Fn>;
-    template<void(*Fn)() = nullptr> using PcInt2 = mega::PcInt2<Fn>;
+    template<void(*fn)() = nullptr> using PcInt0 = mega::PcInt0<fn>;
+    template<void(*fn)() = nullptr> using PcInt1 = mega::PcInt1<fn>;
+    template<void(*fn)() = nullptr> using PcInt2 = mega::PcInt2<fn>;
   }
 
   namespace mega1284 {
-    template<void(*Fn)() = nullptr> using PcInt0 = mega::PcInt0<Fn>;
-    template<void(*Fn)() = nullptr> using PcInt1 = mega::PcInt1<Fn>;
-    template<void(*Fn)() = nullptr> using PcInt2 = mega::PcInt2<Fn>;
+    template<void(*fn)() = nullptr> using PcInt0 = mega::PcInt0<fn>;
+    template<void(*fn)() = nullptr> using PcInt1 = mega::PcInt1<fn>;
+    template<void(*fn)() = nullptr> using PcInt2 = mega::PcInt2<fn>;
   }
 
 }} // hw::avr
