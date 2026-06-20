@@ -9,10 +9,9 @@
 #include <hapi/hapi.h>
 
 #ifdef __AVR__
-  #include <Arduino.h>
+  #include <stdint.h>
 #else
   #include <cstdint>
-  using byte = unsigned char;
 #endif
 
 namespace hw {
