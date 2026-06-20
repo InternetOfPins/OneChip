@@ -1,6 +1,9 @@
 #pragma once
 #include <onePin/onePin.h>
 #include <chips/avr/avrPort.h>
+#ifdef __AVR__
+  #include <avr/interrupt.h>
+#endif
 
 namespace hw::avr {
 
@@ -38,6 +41,13 @@ namespace hw::avr {
       Board() = delete;
       static_assert((detail::is_avr_peripheral<Peripherals> && ...),
         "AVR::Board: all peripherals must use AVR ports");
+
+      static void begin() {
+        onePin::Device<Boot, Peripherals...>::begin();
+#ifdef __AVR__
+        sei();
+#endif
+      }
     };
   };
 

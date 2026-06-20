@@ -9,7 +9,6 @@ using namespace hw::avr; using namespace oneBit;
 using Chip = AVR;
 
 #ifdef IOP
-  #include <avr/interrupt.h>
   using SysTick = chip::SysTick0<>;
 #else
   using SysTick = FrameworkClock;
@@ -31,7 +30,6 @@ SysTick::Blink<500>     blink2;
 
 int main() {
   Board::begin();
-  sei();
   Board::run([](){
     led1.set(blink1());
     led2.set(blink2());
