@@ -10,6 +10,36 @@ extern "C" void init();
 
 namespace hw::stm32 {
 
+  // ============================================================
+  // STM32F1 PLL helper — called from SysClock<72MHz>::begin()
+  // Configures: Flash 2WS → HSE on → PLL ×9 → APB1 /2 → switch
+  // Falls back silently to HSI if HSE fails (no crystal).
+  // ============================================================
+#if defined(STM32F1xx) && defined(IOP)
+  inline void stm32f1_pll_72mhz() {
+    volatile uint32_t& flash_acr = *reinterpret_cast<volatile uint32_t*>(0x40022000u);
+    volatile uint32_t& rcc_cr    = *reinterpret_cast<volatile uint32_t*>(0x40021000u);
+    volatile uint32_t& rcc_cfgr  = *reinterpret_cast<volatile uint32_t*>(0x40021004u);
+
+    flash_acr = (flash_acr & ~0x7u) | 0x2u;  // 2 wait states for 72 MHz
+
+    rcc_cr |= (1u << 16);                     // HSEON
+    uint32_t t = 100000;
+    while (!(rcc_cr & (1u << 17)) && --t);    // wait HSERDY (timeout → stay on HSI)
+    if (!t) return;
+
+    // PLL: source = HSE, multiplier = ×9 → 72 MHz
+    rcc_cfgr = (rcc_cfgr & ~0x3F0000u) | 0x1D0000u;  // PLLSRC=HSE, PLLMUL=×9
+    rcc_cfgr = (rcc_cfgr & ~0x700u)    | 0x400u;     // APB1 = HCLK/2 = 36 MHz
+
+    rcc_cr |= (1u << 24);                     // PLLON
+    while (!(rcc_cr & (1u << 25)));           // wait PLLRDY
+
+    rcc_cfgr = (rcc_cfgr & ~0x3u) | 0x2u;   // SW = PLL
+    while ((rcc_cfgr & 0xCu) != 0x8u);       // wait SWS = PLL
+  }
+#endif
+
   // ARM Cortex-M SysTick registers (fixed address, all Cortex-M cores)
   struct arm_systick_regs {
     volatile uint32_t ctrl;   // 0xE000E010
@@ -37,6 +67,9 @@ namespace hw::stm32 {
       inline static volatile uint32_t _ms = 0;
 
       static void begin() {
+#if defined(STM32F1xx)
+        if constexpr (CpuHz == 72000000UL) stm32f1_pll_72mhz();
+#endif
         systick_hw().load = CpuHz / 1000 - 1;  // reload for 1ms tick
         systick_hw().val  = 0;
         systick_hw().ctrl = 0x7;  // AHB clock | TICKINT | ENABLE
