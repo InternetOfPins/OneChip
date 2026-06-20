@@ -5,14 +5,14 @@
  *
  * SysClock<CSPolicy, PrescaleValue, CpuHz>
  *   HAPI component — layers above TimerCore<tc8_regs,...> in the chain.
- *   Provides begin(), on_overflow(), millis(), micros().
+ *   Provides begin(), onOverflow(), millis(), micros().
  *
  * Typical chain:
  *   chip::SysTick0<>  ==  APIOf<BootDef, SysClock<CS1Policy,64,16MHz>, TimerCore<tc8_regs,0x44,0x35,0x6E>>
  *
  * User platform file owns the ISR:
  *   using SysTick = chip::SysTick0<>;
- *   ISR(TIMER0_OVF_vect) { SysTick::on_overflow(); }
+ *   ISR(TIMER0_OVF_vect) { SysTick::onOverflow(); }
  *
  * Device integration:
  *   using Board = Device<Boot<SysTick>, Led, Btn>;
@@ -59,7 +59,7 @@ namespace avr {
       }
 
       // called from ISR — keep _overflow_count for micros(), _ms/_fract for millis()
-      static void on_overflow() {
+      static void onOverflow() {
         _overflow_count++;
         uint32_t m = _ms;
         uint16_t f = _fract;
@@ -145,12 +145,12 @@ namespace avr {
 //   using Led     = APIOf<AvrOutPin, Mask<Pins<5>>, chip::PortB>;
 //   using Board   = Device<Boot<SysTick>, Led>;
 //
-//   ISR(TIMER0_OVF_vect) { SysTick::on_overflow(); }
+//   ISR(TIMER0_OVF_vect) { SysTick::onOverflow(); }
 //
 //   void setup() { Board::begin(); sei(); }
 //   void loop()  { if (SysTick::millis() - t0 >= 500) { led.on(); ... } }
 //
 // To use Timer2 instead (frees Timer0 for PWM):
 //   using SysTick = chip::SysTick2<>;
-//   ISR(TIMER2_OVF_vect) { SysTick::on_overflow(); }
+//   ISR(TIMER2_OVF_vect) { SysTick::onOverflow(); }
 // ============================================================

@@ -13,7 +13,7 @@ using Board   = Chip::Board<onePin::Boot<SysTick>, Led>;
 
 Led led;
 
-ISR(TIMER0_OVF_vect) { SysTick::on_overflow(); }
+ISR(TIMER0_OVF_vect) { SysTick::onOverflow(); }
 
 int main() {
   Board::begin();
