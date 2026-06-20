@@ -29,17 +29,18 @@ namespace hw::avr {
 
   public:
     static void send(uint8_t addr, uint8_t data) {
-      _start();
-      _write(addr << 1);  // SLA+W
-      _write(data);
-      _stop();
+      _start(); _write(addr << 1); _write(data); _stop();
     }
     static void send(uint8_t addr, const uint8_t* data, uint8_t len) {
-      _start();
-      _write(addr << 1);
+      _start(); _write(addr << 1);
       while (len--) _write(*data++);
       _stop();
     }
+
+    // Streaming API — for multi-byte payloads without repeated start/stop.
+    static void begin_write(uint8_t addr) { _start(); _write(addr << 1); }
+    static void write_byte(uint8_t b)     { _write(b); }
+    static void end_write()               { _stop(); }
   };
 
   namespace mega {

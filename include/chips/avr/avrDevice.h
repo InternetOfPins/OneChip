@@ -3,6 +3,7 @@
 #include <chips/avr/avrPort.h>
 #include <chips/avr/avrUart.h>
 #include <chips/avr/avrTwi.h>
+#include <chips/avr/avrSpi.h>
 
 namespace hw::avr {
 
