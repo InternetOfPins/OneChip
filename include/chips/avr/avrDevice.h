@@ -2,6 +2,7 @@
 #include <chips/avr/avrSysClock.h>
 #include <chips/avr/avrPort.h>
 #include <chips/avr/avrUart.h>
+#include <chips/avr/avrTwi.h>
 
 namespace hw::avr {
 
