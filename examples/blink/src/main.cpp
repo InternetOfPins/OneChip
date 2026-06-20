@@ -13,8 +13,7 @@ using namespace oneBit;
 #ifdef __AVR__
   using SysTick = chip::SysTick0<>;
   using Led1    = AVR::OutPin<Pins<5>, chip::PortB>;
-  using Led2    = AVR::OutPin<Pins<4>, chip::PortB>;
-  using Board   = AVR::Board<Boot<SysTick>, Led1, Led2>;
+  using Board   = AVR::Board<Boot<SysTick>, Led1>;
   #ifdef IOP
   IOP_TIMER0_ISR(Board)
   #endif
@@ -33,17 +32,9 @@ using namespace oneBit;
 Led1 led1;
 SysTick::Blink<100, 900> blink1;
 
-#ifdef __AVR__
-Led2 led2;
-SysTick::Blink<300> blink2;
-#endif
-
 int main() {
   Board::begin();
   Board::run([](){
     led1.set(blink1());
-#ifdef __AVR__
-    led2.set(blink2());
-#endif
   });
 }
