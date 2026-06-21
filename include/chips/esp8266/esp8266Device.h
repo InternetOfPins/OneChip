@@ -65,4 +65,26 @@ namespace hw::esp8266 {
     static constexpr uint8_t SCL_pin = 2;
   };
 
+  // ── AquaGrow MicroTC360 / MicroTC361 ─────────────────────────────────────
+  // ESP8266 (Wemos D1 Mini) aquarium LED controller.
+  // MicroTC360: with SSD1306 OLED + rotary encoder (full UI)
+  // MicroTC361: headless variant (no display, no encoder) — same PCB, HEADLESS build flag
+  //
+  // I2C bus (400 kHz): SSD1306 + DS3231 + PCA9685 all on SDA=4/SCL=5
+  // PCA9685: 16-channel PWM for LED channels (lights, moonlight, UV, etc.)
+  // DS3231: RTC for alarm scheduling
+  // Encoder: A=12, B=14, BTN=13 (swap A/B to reverse direction)
+
+  struct MicroTC360 : WemosD1Mini {
+    static constexpr uint8_t  SDA_pin   = 4;
+    static constexpr uint8_t  SCL_pin   = 5;
+    static constexpr uint8_t  ENC_A     = 12;
+    static constexpr uint8_t  ENC_B     = 14;
+    static constexpr uint8_t  ENC_BTN   = 13;
+    static constexpr uint32_t I2C_SPEED = 400000UL;
+  };
+
+  // Headless variant — same board, no display/encoder populated
+  struct MicroTC361 : MicroTC360 {};
+
 } // hw::esp8266
