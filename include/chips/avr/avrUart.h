@@ -43,14 +43,14 @@ namespace hw::avr {
         return *reinterpret_cast<avr_usart_regs*>(BASE);
       }
 
-      static bool uart_available() { return regs().ucsra & (1u << 7); }  // RXCn
+      static bool available() { return regs().ucsra & (1u << 7); }  // RXCn
 
-      static void uart_putch(uint8_t c) {
+      static void putch(uint8_t c) {
         while (!(regs().ucsra & (1u << 5)));  // wait UDREn
         regs().udr = c;
       }
 
-      static uint8_t uart_getch() {
+      static uint8_t getch() {
         while (!(regs().ucsra & (1u << 7)));  // wait RXCn
         return regs().udr;
       }
