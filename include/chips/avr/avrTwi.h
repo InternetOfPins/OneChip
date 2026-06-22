@@ -37,10 +37,34 @@ namespace hw::avr {
       _stop();
     }
 
-    // Streaming API — for multi-byte payloads without repeated start/stop.
+    // ── Write streaming ──────────────────────────────────────────────────────
     static void begin_write(uint8_t addr) { _start(); _write(addr << 1); }
     static void write_byte(uint8_t b)     { _write(b); }
     static void end_write()               { _stop(); }
+
+    // ── Read streaming ───────────────────────────────────────────────────────
+    // request_from: sends START + SLA+R, primes the byte counter.
+    // read_byte: clocks each byte out; ACKs all but the last, then sends STOP.
+    inline static uint8_t _rcount = 0;
+
+    static uint8_t request_from(uint8_t addr, uint8_t n) {
+      _rcount = n;
+      _start();
+      _write(uint8_t((addr << 1) | 1));  // SLA+R
+      return n;
+    }
+
+    static uint8_t read_byte() {
+      if (_rcount > 1) {
+        TWCR = (1<<TWINT)|(1<<TWEN)|(1<<TWEA);  // ACK — more to come
+      } else {
+        TWCR = (1<<TWINT)|(1<<TWEN);             // NACK — last byte
+      }
+      while (!(TWCR & (1<<TWINT)));
+      uint8_t b = TWDR;
+      if (--_rcount == 0) _stop();
+      return b;
+    }
   };
 
   namespace mega {
