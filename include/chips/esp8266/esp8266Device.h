@@ -1,5 +1,7 @@
 #pragma once
 #include <hapi/hapi.h>
+#include <chips/esp8266/esp8266SysClock.h>
+#include <chips/esp8266/esp8266Twi.h>
 #include <stdint.h>
 
 // ESP8266 (Xtensa LX106) chip catalog.
@@ -19,6 +21,9 @@
 // 'ESP8266' is defined as a preprocessor macro by the framework — avoid that name.
 
 namespace hw::esp8266 {
+
+  // chip:: alias — all esp8266 headers expose their types in hw::esp8266::esp8266
+  namespace chip = esp8266;
 
   struct Esp8266Dev {
     Esp8266Dev() = delete;

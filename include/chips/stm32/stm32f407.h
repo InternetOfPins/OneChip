@@ -69,15 +69,15 @@ namespace hw::stm32 {
     // APB1 = 42 MHz at 168 MHz CPU
     template<uint32_t SclHz = 100000UL, uint32_t ApbHz = 42000000UL>
     using Twi = hapi::APIOf<oneBus::TwiAPI,
-                            Stm32I2cCore<0x40005400u, Stm32F4_I2c1_PB6_PB7, ApbHz>>;
+                            Stm32I2cCore<0x40005400u, Stm32F4_I2c1_PB6_PB7, ApbHz, SclHz>>;
 
     template<uint32_t SclHz = 100000UL, uint32_t ApbHz = 42000000UL>
     using Twi_PB8_PB9 = hapi::APIOf<oneBus::TwiAPI,
-                                    Stm32I2cCore<0x40005400u, Stm32F4_I2c1_PB8_PB9, ApbHz>>;
+                                    Stm32I2cCore<0x40005400u, Stm32F4_I2c1_PB8_PB9, ApbHz, SclHz>>;
 
     template<uint32_t SclHz = 100000UL, uint32_t ApbHz = 42000000UL>
     using Twi2 = hapi::APIOf<oneBus::TwiAPI,
-                             Stm32I2cCore<0x40005800u, Stm32F4_I2c2_PB10_PB11, ApbHz>>;
+                             Stm32I2cCore<0x40005800u, Stm32F4_I2c2_PB10_PB11, ApbHz, SclHz>>;
 
     // ── SPI ──────────────────────────────────────────────────────
     // SPI1 on APB2 = 84 MHz; SPI2 on APB1 = 42 MHz
@@ -102,7 +102,7 @@ namespace hw::stm32 {
     // chip::Twi<> and chip::Spi<> via F4 defaults
     template<uint32_t SclHz = 100000UL, uint32_t ApbHz = 42000000UL>
     using Twi = hapi::APIOf<oneBus::TwiAPI,
-                            Stm32I2cCore<0x40005400u, Stm32F4_I2c1_PB6_PB7, ApbHz>>;
+                            Stm32I2cCore<0x40005400u, Stm32F4_I2c1_PB6_PB7, ApbHz, SclHz>>;
 
     template<uint32_t Speed = 4000000UL, uint8_t Mode = 0,
              bool MSBFirst = true, uint32_t ApbHz = 84000000UL>

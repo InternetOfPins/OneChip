@@ -1,0 +1,6 @@
+date,board,flash_bytes,ram_bytes,gcc_ver,description
+2026-06-19,uno,610,10,7.3+,PinAPI(set/get/dir)+Blinker+chip::PortB — initial HAPI port
+2026-06-20,uno,610,10,7.3+,AvrOutPin+Mask<Pins<5>>+chip::PortB — OneBit Mask; PortAlloc added
+2026-06-20,uno,610,10,7.3.0,AvrOutPin+Mask<Pins<5>>+PortAlloc+private rawSet — current state
+2026-06-20,uno,610,10,7.3.0,verify clean script
+2026-06-20,uno,610,10,7.3.0,DeviceClass+Map-count+pin()/port() API; rules: Mask==1,no-collision

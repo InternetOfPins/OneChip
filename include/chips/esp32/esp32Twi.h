@@ -34,6 +34,16 @@ namespace hw::esp32 {
       while (len--) Wire.write(*data++);
       Wire.endTransmission();
     }
+
+    // ── Read streaming ─────────────────────────────────────────────────
+    static uint8_t request_from(uint8_t addr, uint8_t n) {
+      return Wire.requestFrom(static_cast<uint8_t>(addr),
+                              static_cast<uint8_t>(n));
+    }
+
+    static uint8_t read_byte() { return Wire.read(); }
+
+    static bool available() { return Wire.available() > 0; }
   };
 
 #else // ESP-IDF

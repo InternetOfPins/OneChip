@@ -135,8 +135,10 @@ namespace hw::stm32 {
   // PinCfg: clock_enable() + pin_config()
   // ApbHz:  APB clock in Hz (APB1 for I2C; 8 MHz HSI on F1 at reset,
   //         36 MHz APB1 at 72 MHz PLL; 42 MHz on F4 at 168 MHz)
+  // Freq:   SCL frequency in Hz (default 100 kHz standard mode)
   // ============================================================
-  template<uint32_t BASE, typename PinCfg, uint32_t ApbHz = 36000000UL>
+  template<uint32_t BASE, typename PinCfg, uint32_t ApbHz = 36000000UL,
+           uint32_t Freq = 100000UL>
   struct Stm32I2cCore {
     template<typename O>
     struct Part : O {
@@ -175,7 +177,7 @@ namespace hw::stm32 {
       }
 
       static void begin() {
-        twi_init(100000u);  // default 100 kHz; override via twi_init() before begin()
+        twi_init(Freq);
         Base::begin();
       }
 
