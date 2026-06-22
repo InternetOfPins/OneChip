@@ -1,6 +1,8 @@
 #pragma once
 #include <chips/stm32/stm32SysClock.h>
 #include <chips/stm32/stm32Uart.h>
+#include <chips/stm32/stm32Twi.h>
+#include <chips/stm32/stm32Spi.h>
 #if defined(STM32F1xx)
   #include <chips/stm32/stm32F1Port.h>
 #else

@@ -123,14 +123,14 @@ namespace hw::stm32 {
         return *reinterpret_cast<stm32_usart_regs*>(BASE);
       }
 
-      static bool uart_available() { return regs().sr & (1u << 5); }  // RXNE
+      static bool available() { return regs().sr & (1u << 5); }  // RXNE
 
-      static void uart_putch(uint8_t c) {
+      static void putch(uint8_t c) {
         while (!(regs().sr & (1u << 7)));  // wait TXE
         regs().dr = c;
       }
 
-      static uint8_t uart_getch() {
+      static uint8_t getch() {
         while (!(regs().sr & (1u << 5)));  // wait RXNE
         return regs().dr;
       }
