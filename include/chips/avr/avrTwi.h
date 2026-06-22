@@ -4,6 +4,44 @@
 
 namespace hw::avr {
 
+  // HAPI hardware core — maps AVR TWI registers, no protocol logic.
+  // twi_init/twi_start/twi_stop/twi_write/twi_read are the primitive API;
+  // I2cMaster<Freq> (in OneBus/i2c.h) sits above and calls Base::twi_*.
+  template<uint32_t CpuHz = 16000000UL>
+  struct AvrTwiCore {
+    template<typename O>
+    struct Part : O {
+      using Base = O;
+
+      static void twi_init(uint32_t freq) {
+        TWSR = 0;                                        // prescaler = 1
+        TWBR = uint8_t((CpuHz / freq - 16) / 2);
+      }
+      static void twi_start() {
+        TWCR = (1<<TWINT)|(1<<TWSTA)|(1<<TWEN);
+        while (!(TWCR & (1<<TWINT)));
+      }
+      static void twi_stop() {
+        TWCR = (1<<TWINT)|(1<<TWSTO)|(1<<TWEN);
+      }
+      static void twi_write(uint8_t b) {
+        TWDR = b;
+        TWCR = (1<<TWINT)|(1<<TWEN);
+        while (!(TWCR & (1<<TWINT)));
+      }
+      static uint8_t twi_read(bool ack) {
+        TWCR = ack
+          ? uint8_t((1<<TWINT)|(1<<TWEN)|(1<<TWEA))
+          : uint8_t((1<<TWINT)|(1<<TWEN));
+        while (!(TWCR & (1<<TWINT)));
+        return TWDR;
+      }
+      static void begin() { Base::begin(); }
+    };
+  };
+
+
+
   // AVR TWI (Two Wire Interface) master — bare register driver.
   // SclHz: SCL clock frequency. CpuHz: CPU frequency (for TWBR calc).
   template<uint32_t SclHz = 100000UL, uint32_t CpuHz = 16000000UL>
