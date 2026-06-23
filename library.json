@@ -1,6 +1,6 @@
 {
   "name": "OneChip",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Hardware register components for HAPI chains — AVR and STM32 GPIO, timers, interrupts. No Arduino or ST HAL dependency.",
   "keywords": "avr, stm32, gpio, timer, embedded, hapi",
   "repository":
