@@ -33,6 +33,9 @@ namespace avr {
     using is_avr_port = std::true_type;
     using Unit = ::hw::avr::Unit;
     static constexpr Unit allowedMask = AllowedMask;
+    static constexpr Addr pinAddr  = pIn;
+    static constexpr Addr ddrAddr  = pDdr;
+    static constexpr Addr portAddr = pOut;
     template<Unit NewMask>
     using rebind = AVRPort<pIn, pDdr, pOut, NewMask>;
 
