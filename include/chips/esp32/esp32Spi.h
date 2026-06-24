@@ -16,6 +16,7 @@ namespace hw::esp32 {
 
 #ifdef ARDUINO
 
+  /// @brief ESP32 SPI master (VSPI); MOSI/MISO/SCK default to 23/19/18; CS handled by transport
   template<int MOSI = 23, int MISO = 19, int SCK = 18>
   struct Esp32SpiMaster {
     static void begin() {

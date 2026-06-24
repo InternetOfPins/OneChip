@@ -15,6 +15,7 @@
 
 namespace hw::esp32 {
 
+  /// @brief ESP32 output pin; wraps Arduino digitalWrite or ESP-IDF gpio_set_level
   template<int N>
   struct Esp32OutPin {
     static void begin() {
@@ -44,6 +45,7 @@ namespace hw::esp32 {
     static void toggle() { set(!get()); }
   };
 
+  /// @brief ESP32 input pin; wraps Arduino digitalRead or ESP-IDF gpio_get_level
   template<int N>
   struct Esp32InPin {
     static void begin() {
@@ -63,7 +65,7 @@ namespace hw::esp32 {
     }
   };
 
-  // Convenience: pull-up input
+  /// @brief ESP32 input pin with pull-up; Arduino INPUT_PULLUP or ESP-IDF GPIO_PULLUP_ONLY
   template<int N>
   struct Esp32InPullUpPin {
     static void begin() {
