@@ -60,14 +60,15 @@ namespace hw {
   template<uint32_t Ms>
   struct Period {
     uint32_t last = 0;
-    bool operator()() {
+    bool operator()()   {
       uint32_t now = millis();
       if (now - last < Ms) return false;
       last = now;
       return true;
     }
-    void     reset() { last = millis(); }
-    uint32_t when()  const { return last + Ms; }
+    explicit operator bool() { return operator()(); }
+    void     reset()         { last = millis(); }
+    uint32_t when()    const { return last + Ms; }
   };
 }
 
