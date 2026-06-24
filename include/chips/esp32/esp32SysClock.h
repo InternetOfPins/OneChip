@@ -45,6 +45,7 @@ namespace hw::esp32 {
           last = now;
           return true;
         }
+        explicit operator bool() { return operator()(); }
         void     reset() { last = millis(); }
         uint32_t when()  const { return last + ms; }
       };

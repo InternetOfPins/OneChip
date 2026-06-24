@@ -29,6 +29,7 @@ namespace hw::avr {
         last = now;
         return true;
       }
+      explicit operator bool() { return operator()(); }
       void     reset() { last = millis(); }
       uint32_t when()  const { return last + ms; }
     };
