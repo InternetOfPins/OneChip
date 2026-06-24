@@ -124,7 +124,8 @@ namespace avr {
           last = now;
           return true;
         }
-        void reset() { last = millis(); }
+        void     reset() { last = millis(); }
+        uint32_t when()  const { return last + ms; }
       };
 
       template<uint32_t timeOn, uint32_t timeOff = timeOn>
