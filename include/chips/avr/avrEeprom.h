@@ -66,6 +66,8 @@ namespace hw::avr {
     static constexpr uint16_t size     = Size_;
     static constexpr uint8_t  pageSize = PageSize_;
 
+    static void begin() {}  // no initialisation needed; EEPROM is always on
+
     static void read(uint16_t addr, uint8_t* buf, uint16_t len) {
       for (uint16_t i = 0; i < len; i++)
         buf[i] = detail::_read_byte(addr + i);
