@@ -25,6 +25,7 @@ namespace hw::esp8266 {
   // chip:: alias — all esp8266 headers expose their types in hw::esp8266::esp8266
   namespace chip = esp8266;
 
+  /// @brief ESP8266 chip descriptor: GPIO catalog, Twi/Spi aliases, pre-defined board pin maps
   struct Esp8266Dev {
     Esp8266Dev() = delete;
 

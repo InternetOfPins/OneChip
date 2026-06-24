@@ -6,7 +6,7 @@
 
 namespace hw::esp32 {
 
-  // 'ESP32' is a preprocessor macro in the Arduino ESP32 framework — avoid that name.
+  /// @brief ESP32 chip descriptor: GPIO catalog, Twi/Spi aliases, FreeRTOS-aware Board wrapper
   struct Esp32Dev {
     Esp32Dev() = delete;
 

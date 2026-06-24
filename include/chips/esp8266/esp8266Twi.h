@@ -27,8 +27,7 @@
 
 namespace hw::esp8266 {
 
-  // SDA / SCL are GPIO numbers (bare integers, not pin objects).
-  // SclHz: Wire.setClock() value; typical = 100000 or 400000.
+  /// @brief ESP8266 I2C master via Arduino Wire; SDA/SCL are GPIO numbers, SclHz sets clock rate
   template<int SDA = 4, int SCL = 5, uint32_t SclHz = 400000UL>
   struct Esp8266TwiMaster {
 

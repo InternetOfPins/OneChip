@@ -18,6 +18,7 @@
 
 namespace hw::esp32 {
 
+  /// @brief ESP32 system clock component; provides millis()-based Period and Blink helpers
   struct Esp32Clock {
     template<typename O>
     struct Part : O {

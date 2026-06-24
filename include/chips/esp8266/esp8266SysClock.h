@@ -12,6 +12,7 @@
 
 namespace hw::esp8266 {
 
+  /// @brief ESP8266 system clock component; provides millis()-based Period and Blink helpers
   struct Esp8266Clock {
     template<typename O>
     struct Part : O {
