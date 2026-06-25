@@ -24,6 +24,8 @@ namespace hw::avr {
       IsAVRPort::template Check<avr_port_t<PC>>::value;
   }
 
+  // avr/io.h defines AVR=1 — undefine before using it as a struct name.
+  #undef AVR
   struct AVR {
     AVR() = delete;
 

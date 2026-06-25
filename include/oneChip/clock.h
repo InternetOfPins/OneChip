@@ -27,6 +27,8 @@
   #ifndef IOP
     extern "C" unsigned long millis();
     namespace hw { inline uint32_t millis() { return (uint32_t)::millis(); } }
+  #else
+    namespace hw { uint32_t millis(); }  // defined by user's SysTick setup in main.cpp
   #endif
   namespace hw { inline void delay_ms(uint32_t ms) { while (ms--) _delay_ms(1); } }
 
