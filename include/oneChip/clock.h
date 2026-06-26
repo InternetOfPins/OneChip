@@ -33,8 +33,10 @@
   namespace hw { inline void delay_ms(uint32_t ms) { while (ms--) _delay_ms(1); } }
 
 #elif defined(ARDUINO)
+  // uint32_t resolves to unsigned long on AVR and unsigned int on 32-bit targets,
+  // matching each Arduino platform's actual millis()/delay() declaration.
   extern "C" unsigned long millis();
-  extern "C" void delay(unsigned long);
+  extern "C" void delay(uint32_t);
   namespace hw {
     inline uint32_t millis()        { return (uint32_t)::millis(); }
     inline void     delay_ms(uint32_t ms) { ::delay(ms); }
