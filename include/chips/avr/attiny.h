@@ -62,7 +62,10 @@ namespace hw::avr {
     static constexpr uint8_t INT0_bit = 2;  // PB2 (INT0)
     static constexpr uint8_t RESET_bit= 5;  // PB5 (active-low RESET)
 
-    struct BoardDef { BoardDef() = delete; };
+    struct BoardDef {
+      BoardDef() = delete;
+      static void begin() {}
+    };
     template<typename... CC> using Board = hapi::APIOf<BoardDef, CC...>;
   };
 

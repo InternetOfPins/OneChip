@@ -76,7 +76,10 @@ namespace avr {
     static constexpr uint8_t MISO_bit = 4;   // PB4
     static constexpr uint8_t SCK_bit  = 5;   // PB5
 
-    struct BoardDef { BoardDef() = delete; };
+    struct BoardDef {
+      BoardDef() = delete;
+      static void begin() {}
+    };
     template<typename... CC> using Board = hapi::APIOf<BoardDef, CC...>;
   };
 
@@ -153,7 +156,10 @@ namespace avr {
     static constexpr uint8_t MISO_bit = 3;   // PB3
     static constexpr uint8_t SCK_bit  = 1;   // PB1
 
-    struct BoardDef { BoardDef() = delete; };
+    struct BoardDef {
+      BoardDef() = delete;
+      static void begin() {}
+    };
     template<typename... CC> using Board = hapi::APIOf<BoardDef, CC...>;
   };
 
@@ -208,7 +214,10 @@ namespace avr {
     static constexpr uint8_t MISO_bit = 6;   // PB6
     static constexpr uint8_t SCK_bit  = 7;   // PB7
 
-    struct BoardDef { BoardDef() = delete; };
+    struct BoardDef {
+      BoardDef() = delete;
+      static void begin() {}
+    };
     template<typename... CC> using Board = hapi::APIOf<BoardDef, CC...>;
   };
 

@@ -79,7 +79,10 @@ namespace hw::samd {
     using SercomSPI  = Sercom4;  // default SPI SERCOM
     using SercomUART = Sercom0;  // default UART (Serial1 on D0/D1)
 
-    struct BoardDef { BoardDef() = delete; };
+    struct BoardDef {
+      BoardDef() = delete;
+      static void begin() {}
+    };
     template<typename... CC> using Board = hapi::APIOf<BoardDef, CC...>;
   };
 

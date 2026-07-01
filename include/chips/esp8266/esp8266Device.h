@@ -59,7 +59,10 @@ namespace hw::esp8266 {
     // ADC
     static constexpr uint8_t A0_pin = 17;   // A0 — 10-bit, 0-1V (module) / 0-3.3V (NodeMCU)
 
-    struct BoardDef { BoardDef() = delete; };
+    struct BoardDef {
+      BoardDef() = delete;
+      static void begin() {}
+    };
     template<typename... CC> using Board = hapi::APIOf<BoardDef, CC...>;
   };
 
