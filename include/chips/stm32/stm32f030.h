@@ -1,7 +1,6 @@
 /**
  * @file stm32f030.h
- * @brief STM32F030 chip catalog — first pass: memory + GPIO only (no Serial/Twi/Spi yet,
- *        those need their own register verification, deferred to a follow-up).
+ * @brief STM32F030 chip catalog — memory + GPIO + USART1 (Twi/Spi not yet added).
  *
  * Covers STM32F030F4 (TSSOP20 — "HW-538 STM32F030 DEMO BOARD"): 16K Flash, 4K RAM.
  * F030x4/x6/x8/xC share one die per RM0360 — only Flash/RAM differ.
@@ -12,10 +11,12 @@
  *   namespace chip = hw::stm32::f0;
  *
  *   using Led = STM32::OutPin<Pins<13>, chip::PortA>;  // adjust pin to the board's actual LED
+ *   using Ser = chip::Serial0<115200>;                  // USART1 — PA9 TX / PA10 RX
  */
 
 #pragma once
 #include <chips/stm32/stm32Device.h>
+#include <oneBus/uart.h>
 
 namespace hw::stm32 {
 
@@ -52,6 +53,14 @@ namespace hw::stm32 {
     // ── SysClk (named to avoid ARM CMSIS's #define SysTick, see stm32SysClock.h) ───
     template<uint32_t CpuHz = 8000000UL>
     using SysClk = f0::SysClk<CpuHz>;
+
+    // ── Serial (USART1) ─────────────────────────────────────────
+    // Default CpuHz = 8 MHz — HSI reset default, no PLL configured (matches SysClk's
+    // default above; F030 can run up to 48MHz via PLL but that's not set up here yet).
+    // Stm32UsartV2Core, not Stm32UsartCore — F0's USART register map differs from F1/F4.
+    template<uint32_t BaudRate = 115200UL, uint32_t CpuHz = 8000000UL>
+    using Serial0 = hapi::APIOf<oneBus::UartAPI, oneBus::Uart<BaudRate>,
+                                Stm32UsartV2Core<0x40013800u, Stm32F0_Usart1_PA9_PA10, CpuHz>>;
   };
 
   // Convenience: chip-specific name
