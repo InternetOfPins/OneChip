@@ -97,6 +97,25 @@ namespace hw::stm32 {
     }
   };
 
+  // STM32F0 SPI1: PA5(SCK) / PA6(MISO) / PA7(MOSI)
+  // AF0 for SPI1 on F0 — NOT F4's AF5, verified against the real F030F4 (TSSOP20)
+  // ST-published PeripheralPins.c (PinMap_SPI_SCLK/MISO/MOSI all list GPIO_AF0_SPI1).
+  // APB2, base 0x40013000 (same IP base as F1/F4).
+  struct Stm32F0_Spi1_PA5_PA6_PA7 {
+    static void clock_enable() {
+      *reinterpret_cast<volatile uint32_t*>(0x40021014u) |= (1u << 17);  // GPIOAEN RCC_AHBENR
+      *reinterpret_cast<volatile uint32_t*>(0x40021018u) |= (1u << 12);  // SPI1EN RCC_APB2ENR
+    }
+    static void pin_config() {
+      volatile uint32_t& moder = *reinterpret_cast<volatile uint32_t*>(0x48000000u); // GPIOA MODER
+      moder = (moder & ~0xFC00u) | 0xA800u;  // PA5/PA6/PA7 = AF (10)
+      // AFRL: pin5=[23:20], pin6=[27:24], pin7=[31:28], all AF0 (=0) — no bits to set,
+      // just clear any reset-default garbage in that field.
+      volatile uint32_t& afrl = *reinterpret_cast<volatile uint32_t*>(0x48000020u); // GPIOA AFRL
+      afrl &= ~0xFFF00000u;
+    }
+  };
+
   // ============================================================
   // Stm32SpiCore — hardware SPI master core.
   // BASE:   peripheral base address
