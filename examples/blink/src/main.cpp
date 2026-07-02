@@ -20,7 +20,7 @@ using namespace oneBit;
 
 // ── STM32 (Blue Pill STM32F103C8) ────────────────────────────────────────────
 #elif defined(__arm__)
-  using SysTick = chip::SysTick<>;
+  using SysTick = chip::SysClk<>;
   using Led1    = STM32::InvOutPin<Pins<13>, chip::PortC>;  // PC13 active-LOW
   using Board   = STM32::Board<Boot<>, Led1>;               // SysTick auto-injected
   #ifdef IOP

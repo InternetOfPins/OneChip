@@ -104,9 +104,9 @@ namespace hw::stm32 {
                              Stm32SpiCore<0x40003800u, Stm32F1_Spi2_PB13_PB14_PB15,
                                           ApbHz, Mode, MSBFirst>>;
 
-    // ── SysTick ──────────────────────────────────────────────────
+    // ── SysClk (named to avoid ARM CMSIS's #define SysTick, see stm32SysClock.h) ───
     template<uint32_t CpuHz = 72000000UL>
-    using SysTick = f1::SysTick<CpuHz>;
+    using SysClk = f1::SysClk<CpuHz>;
   };
 
   // Convenience: chip-specific names

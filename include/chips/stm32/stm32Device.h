@@ -54,13 +54,14 @@ namespace hw::stm32 {
     template<typename Boot, typename... Peripherals>
     struct Board;
 
-    // Auto-inject chip::SysTick<> when Boot has no clock component.
+    // Auto-inject chip::SysClk<> when Boot has no clock component. (Named SysClk, not
+    // SysTick — collides with ARM CMSIS's #define SysTick, see stm32SysClock.h.)
     template<typename... BootItems, typename... Peripherals>
     struct Board<onePin::Boot<BootItems...>, Peripherals...>
       : std::conditional_t<
           detail::any_has_clock<BootItems...>,
           onePin::Device<onePin::Boot<BootItems...>,               Peripherals...>,
-          onePin::Device<onePin::Boot<chip::SysTick<>, BootItems...>, Peripherals...>
+          onePin::Device<onePin::Boot<chip::SysClk<>, BootItems...>, Peripherals...>
         >
     {
       Board() = delete;

@@ -107,23 +107,38 @@ namespace hw::stm32 {
   };
 
   // ============================================================
-  // Family SysTick aliases (CPU frequency differs by family)
+  // Family SysClk aliases (CPU frequency differs by family)
+  // Named SysClk, not SysTick: ARM CMSIS's core_cmX.h (pulled in by every Cortex-M
+  // framework, Arduino included) #defines SysTick as ((SysTick_Type*)SysTick_BASE) —
+  // a raw textual macro, so `using SysTick = ...` anywhere in this file (namespace-level
+  // or as a struct member, e.g. STM32F103::SysTick) gets silently rewritten into that
+  // pointer-cast expression and fails to parse as a type alias. Found 2026-07-02 building
+  // the first STM32 target actually compiled under Arduino framework (stm32f030.h) — F1/F4/
+  // L4/H7 had the identical latent bug, just never previously exercised through a framework
+  // that pulls in core_cmX.h (a bare-metal -DIOP build never includes it, so never collided).
   // ============================================================
   namespace f1 {
     template<uint32_t CpuHz = 72000000UL>
-    using SysTick = hapi::APIOf<onePin::BootDef, SysClock<CpuHz>>;
+    using SysClk = hapi::APIOf<onePin::BootDef, SysClock<CpuHz>>;
+  }
+  namespace f0 {
+    // Default 8MHz — HSI reset default, no PLL configured (unlike f1's stm32f1_pll_72mhz()
+    // special-case). Fine for initial bring-up: millis() timing scales with whatever CpuHz
+    // is declared here, so an unconfigured clock just shifts blink timing, doesn't break it.
+    template<uint32_t CpuHz = 8000000UL>
+    using SysClk = hapi::APIOf<onePin::BootDef, SysClock<CpuHz>>;
   }
   namespace f4 {
     template<uint32_t CpuHz = 168000000UL>
-    using SysTick = hapi::APIOf<onePin::BootDef, SysClock<CpuHz>>;
+    using SysClk = hapi::APIOf<onePin::BootDef, SysClock<CpuHz>>;
   }
   namespace l4 {
     template<uint32_t CpuHz = 80000000UL>
-    using SysTick = hapi::APIOf<onePin::BootDef, SysClock<CpuHz>>;
+    using SysClk = hapi::APIOf<onePin::BootDef, SysClock<CpuHz>>;
   }
   namespace h7 {
     template<uint32_t CpuHz = 480000000UL>
-    using SysTick = hapi::APIOf<onePin::BootDef, SysClock<CpuHz>>;
+    using SysClk = hapi::APIOf<onePin::BootDef, SysClock<CpuHz>>;
   }
 
 } // hw::stm32

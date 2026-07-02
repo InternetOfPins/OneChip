@@ -22,7 +22,7 @@ using namespace oneBit;
 
 // ── STM32 (Blue Pill — 72 MHz via CMSIS SystemInit PLL) ─────────────────────
 #elif defined(__arm__)
-  using SysTick = chip::SysTick<>;                 // 72 MHz default (f1)
+  using SysTick = chip::SysClk<>;                  // 72 MHz default (f1)
   using Ser     = chip::Serial0<9600>;              // USART1 — PA9 TX / PA10 RX
   using Board   = STM32::Board<Boot<SysTick>>;
   #ifdef IOP

@@ -161,6 +161,21 @@ namespace stm32 {
   // Family namespaces
   // ============================================================
 
+  // STM32F0 — GPIO on AHB, RCC AHBENR @ 0x40021014 (RCC_BASE 0x40021000 + 0x14).
+  // GPIOAEN=bit17, GPIOBEN=bit18, GPIOCEN=bit19, GPIODEN=bit20 (verified against RM0360/
+  // RM0091 — F0's AHBENR bit layout differs from both F1's APB2ENR IOPxEN scheme and F4's
+  // AHB1ENR bit-per-port-from-0 scheme; don't assume either pattern carries over to F0).
+  namespace f0 {
+    static constexpr Addr RCC_AHBENR = 0x40021014u;
+    template<Addr BASE, uint8_t BIT>
+    using Port_ = STM32Port<BASE, RCC_AHBENR, BIT>;
+    using PortA = Port_<0x48000000u, 17>;
+    using PortB = Port_<0x48000400u, 18>;
+    using PortC = Port_<0x48000800u, 19>;
+    using PortD = Port_<0x48000C00u, 20>;
+    using PortF = Port_<0x48001400u, 22>;
+  }
+
   // STM32F4 — GPIO on AHB1, RCC AHB1ENR @ 0x40023830
   namespace f4 {
     static constexpr Addr RCC_AHB1ENR = 0x40023830u;
@@ -224,6 +239,8 @@ namespace stm32 {
     namespace hw { namespace stm32 { namespace chip = h7; }}
   #elif defined(STM32L4) || defined(STM32G4) || defined(STM32WB)
     namespace hw { namespace stm32 { namespace chip = l4; }}
+  #elif defined(STM32F0xx)
+    namespace hw { namespace stm32 { namespace chip = f0; }}
   #else
     namespace hw { namespace stm32 { namespace chip = f4; }}
   #endif
