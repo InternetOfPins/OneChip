@@ -164,12 +164,6 @@ Define the target macro **before** including chip headers:
 
 ---
 
-## Dependencies
-
-- [HAPI](https://github.com/InternetOfPins/HAPI)
-- [OneBit](https://github.com/InternetOfPins/OneBit)
-- [OnePin](https://github.com/InternetOfPins/OnePin)
-
 ## License
 
 MIT — see [LICENSE](LICENSE).
