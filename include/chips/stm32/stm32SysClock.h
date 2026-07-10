@@ -112,10 +112,8 @@ namespace hw::stm32 {
   // framework, Arduino included) #defines SysTick as ((SysTick_Type*)SysTick_BASE) —
   // a raw textual macro, so `using SysTick = ...` anywhere in this file (namespace-level
   // or as a struct member, e.g. STM32F103::SysTick) gets silently rewritten into that
-  // pointer-cast expression and fails to parse as a type alias. Found 2026-07-02 building
-  // the first STM32 target actually compiled under Arduino framework (stm32f030.h) — F1/F4/
-  // L4/H7 had the identical latent bug, just never previously exercised through a framework
-  // that pulls in core_cmX.h (a bare-metal -DIOP build never includes it, so never collided).
+  // pointer-cast expression and fails to parse as a type alias. A bare-metal -DIOP build
+  // never includes core_cmX.h, so this only bites under a framework that pulls it in.
   // ============================================================
   namespace f1 {
     template<uint32_t CpuHz = 72000000UL>

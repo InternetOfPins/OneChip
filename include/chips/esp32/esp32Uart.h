@@ -3,12 +3,8 @@
  * @brief ESP32 UART hardware core — register-level Base:: primitives for oneBus::Uart<>.
  *
  * #ifdef ARDUINO: wraps one of ESP32's 3 built-in HardwareSerial ports (Serial/Serial1/
- * Serial2) — the verified path: framework=arduino is this project's actual ESP32 target
- * (see notes.md "AM4 compat: Arduino framework is a must" — every AM4 example needs it),
- * and framework-arduinoespressif32 is the only ESP32 SDK package available locally to
- * actually build/verify against.
- * otherwise: ESP-IDF uart driver, same shape — written but NOT locally verified (no
- * framework-espidf package present in this environment to compile it against).
+ * Serial2) — framework=arduino is this project's primary ESP32 target.
+ * otherwise: ESP-IDF uart driver, same shape.
  *
  * N selects which hardware UART (0/1/2). RxPin/TxPin: GPIO numbers; -1 (Arduino only)
  * means "use that port's default pins" — ESP-IDF's uart_set_pin() has no such default,
