@@ -26,9 +26,7 @@
 
 namespace hw::stm32 {
 
-  // ============================================================
   // Memory specs
-  // ============================================================
   template<uint32_t FlashBytes, uint32_t RamBytes>
   struct Stm32F103Mem {
     static constexpr uint32_t flash_size = FlashBytes;
@@ -41,10 +39,8 @@ namespace hw::stm32 {
   using STM32F103C8_Mem = Stm32F103Mem<0x10000, 0x5000>;   // 64K / 20K
   using STM32F103CB_Mem = Stm32F103Mem<0x20000, 0x5000>;   // 128K / 20K
 
-  // ============================================================
   // STM32F103 peripheral catalog (LQFP48 pinout)
   // All F103Cx share the same peripherals; only Flash/RAM differ.
-  // ============================================================
   template<typename Mem = STM32F103C8_Mem>
   struct STM32F103 : Mem {
 
