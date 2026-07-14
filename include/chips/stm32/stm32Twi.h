@@ -23,6 +23,8 @@
 
 #pragma once
 #include <cstdint>
+#include <hapi/hapi.h>
+#include <oneBus/i2c.h>
 
 namespace hw::stm32 {
 
@@ -404,5 +406,31 @@ namespace hw::stm32 {
       }
     };
   };
+
+  // ============================================================
+  // Board-specific namespace aliases for oneBus I2C API
+  // ============================================================
+
+  namespace f1 {
+    template<uint32_t SclHz = 100000UL, uint32_t ApbHz = 36000000UL>
+    using Twi = hapi::APIOf<oneBus::TwiAPI,
+                            Stm32I2cCore<0x40005400u, Stm32F1_I2c1_PB6_PB7, ApbHz, SclHz>>;
+  }
+
+  namespace f4 {
+    template<uint32_t SclHz = 100000UL, uint32_t ApbHz = 42000000UL>
+    using Twi = hapi::APIOf<oneBus::TwiAPI,
+                            Stm32I2cCore<0x40005400u, Stm32F4_I2c1_PB6_PB7, ApbHz, SclHz>>;
+  }
+
+  namespace f0 {
+    // Stm32I2cV2Core, NOT Stm32I2cCore — F0's I2C is a different peripheral
+    // design ("I2C_V2") from F1/F4's. ApbHz default 8MHz matches f0::SysClk's
+    // HSI-reset default; only (8MHz,100kHz) and (48MHz,100kHz) have verified
+    // TIMINGR constants — anything else is a compile error by design.
+    template<uint32_t SclHz = 100000UL, uint32_t ApbHz = 8000000UL>
+    using Twi = hapi::APIOf<oneBus::TwiAPI,
+                            Stm32I2cV2Core<0x40005400u, Stm32F0_I2c1_PA9_PA10, ApbHz, SclHz>>;
+  }
 
 } // hw::stm32

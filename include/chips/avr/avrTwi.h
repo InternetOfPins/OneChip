@@ -1,6 +1,8 @@
 #pragma once
 #include <stdint.h>
 #include <avr/io.h>
+#include <hapi/hapi.h>
+#include <oneBus/i2c.h>
 
 namespace hw::avr {
 
@@ -108,6 +110,22 @@ namespace hw::avr {
   namespace mega {
     template<uint32_t SclHz = 100000UL, uint32_t CpuHz = 16000000UL>
     using TwiMaster = AvrTwiMaster<SclHz, CpuHz>;
+
+    template<uint32_t SclHz = 100000UL, uint32_t CpuHz = 16000000UL>
+    using Twi = hapi::APIOf<oneBus::TwiAPI, oneBus::I2cMaster<SclHz>,
+                            AvrTwiCore<CpuHz>>;
+  }
+
+  namespace mega2560 {
+    template<uint32_t SclHz = 100000UL, uint32_t CpuHz = 16000000UL>
+    using Twi = hapi::APIOf<oneBus::TwiAPI, oneBus::I2cMaster<SclHz>,
+                            AvrTwiCore<CpuHz>>;
+  }
+
+  namespace mega1284 {
+    template<uint32_t SclHz = 100000UL, uint32_t CpuHz = 16000000UL>
+    using Twi = hapi::APIOf<oneBus::TwiAPI, oneBus::I2cMaster<SclHz>,
+                            AvrTwiCore<CpuHz>>;
   }
 
 } // hw::avr
