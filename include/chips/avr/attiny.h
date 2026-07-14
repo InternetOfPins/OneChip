@@ -100,4 +100,63 @@ namespace hw::avr {
   struct ATtiny85_Timer1Clk32   : AvrTimer1_Tiny85<0x06> {};  // clk/32
   struct ATtiny85_Timer1Clk64   : AvrTimer1_Tiny85<0x07> {};  // clk/64
 
+  // ── ATtiny45 peripheral catalog ──────────────────────────────────────────
+  // Same die family as ATtiny85 — identical pinout, registers and OC map,
+  // just smaller flash/RAM/EEPROM. Reuses ATtiny85's timer init components.
+  //
+  // ATtiny45 register addresses (identical to ATtiny85):
+  //   PINB=0x36  DDRB=0x37  PORTB=0x38
+  //   TCCR0A=0x4A  OCR0A=0x49  OCR0B=0x48  TCCR0B=0x53
+  //   GTCCR=0x4C  OCR1B=0x4D  TCCR1=0x4F  OCR1C=0x4E
+  //
+  // OC pin map:
+  //   OC0A → PB0 (pin 5)     OC0B → PB1 (pin 6)
+  //   OC1A → PB1 (pin 6, shared with OC0B — avoid using both)
+  //   OC1B → PB4 (pin 3)
+
+  struct ATtiny45 {
+    // Port B: all 6 usable pins (PB0..PB5)
+    struct PortB : AVRPort<0x36, 0x37, 0x38> {};
+
+    // Timer0 — 8-bit, same addresses as ATtiny85
+    struct OC0A : AvrOC<0x49, 0x4A, 7, 0x38, 0x37, 0> {};  // PB0
+    struct OC0B : AvrOC<0x48, 0x4A, 5, 0x38, 0x37, 1> {};  // PB1
+
+    // Timer1 — 8-bit with PLL clock option (same as ATtiny85)
+    struct OC1B : AvrOC<0x4D, 0x4C, 5, 0x38, 0x37, 4> {     // PB4
+      static void enable() {
+        // COM1B=10 (non-inverting) + PWM1B=1
+        auto& g = *reinterpret_cast<volatile uint8_t*>(0x4C);
+        g = (g | (1<<6)|(1<<5)) & ~uint8_t(1<<4);
+      }
+      static void disable() {
+        auto& g = *reinterpret_cast<volatile uint8_t*>(0x4C);
+        g &= ~uint8_t((1<<6)|(1<<5)|(1<<4));
+      }
+    };
+
+    // Flash / RAM / EEPROM
+    static constexpr uint16_t flashSize  = 4096;
+    static constexpr uint16_t ramSize    =  256;
+    using Eep = Tiny45Eeprom;  // 256B, 4B page
+
+    // Function bit positions on PortB
+    static constexpr uint8_t MOSI_bit = 0;  // PB0 (USI DI)
+    static constexpr uint8_t MISO_bit = 1;  // PB1 (USI DO)
+    static constexpr uint8_t SCK_bit  = 2;  // PB2 (USI SCK / SCL)
+    static constexpr uint8_t SDA_bit  = 0;  // PB0 (USI DI — I2C slave only)
+    static constexpr uint8_t SCL_bit  = 2;  // PB2 (USI SCK)
+    static constexpr uint8_t INT0_bit = 2;  // PB2 (INT0)
+    static constexpr uint8_t RESET_bit= 5;  // PB5 (active-low RESET)
+
+    struct BoardDef {
+      BoardDef() = delete;
+      static void begin() {}
+    };
+    template<typename... CC> using Board = hapi::APIOf<BoardDef, CC...>;
+  };
+
+  // ATtiny45 timer0/timer1 init components are register-identical to
+  // ATtiny85's — reuse ATtiny85_Timer0Pwm*/ATtiny85_Timer1Clk* directly.
+
 } // hw::avr

@@ -18,6 +18,7 @@ namespace hw::avr {
   // ATmega2560 4096     8
   // ATmega1284P 4096    8
   // ATtiny85    512     4
+  // ATtiny45    256     4
   //
   // Write timing: ~3.4ms per byte (erase+write mode). The write loop polls
   // EEPE; it blocks until the hardware finishes each byte.
@@ -84,6 +85,7 @@ namespace hw::avr {
   using Mega328Eeprom  = AvrEeprom<1024, 4>;
   using Mega2560Eeprom = AvrEeprom<4096, 8>;
   using Tiny85Eeprom   = AvrEeprom< 512, 4>;
+  using Tiny45Eeprom   = AvrEeprom< 256, 4>;
 
 } // hw::avr
 #endif
