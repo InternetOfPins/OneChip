@@ -1,6 +1,8 @@
 #pragma once
 #include <stdint.h>
 #include <avr/io.h>
+#include <hapi/hapi.h>
+#include <oneBus/spi.h>
 
 namespace hw::avr {
 
@@ -71,6 +73,25 @@ namespace hw::avr {
 
   namespace mega {
     using SpiMaster = AvrSpiMaster;
+
+    template<uint32_t Speed = 4000000UL, uint8_t Mode = 0,
+             bool MSBFirst = true, uint32_t CpuHz = 16000000UL>
+    using Spi = hapi::APIOf<oneBus::SpiAPI, oneBus::SpiMaster<Speed>,
+                            AvrSpiCore<CpuHz, Mode, MSBFirst>>;
+  }
+
+  namespace mega2560 {
+    template<uint32_t Speed = 4000000UL, uint8_t Mode = 0,
+             bool MSBFirst = true, uint32_t CpuHz = 16000000UL>
+    using Spi = hapi::APIOf<oneBus::SpiAPI, oneBus::SpiMaster<Speed>,
+                            AvrSpiCore<CpuHz, Mode, MSBFirst>>;
+  }
+
+  namespace mega1284 {
+    template<uint32_t Speed = 4000000UL, uint8_t Mode = 0,
+             bool MSBFirst = true, uint32_t CpuHz = 16000000UL>
+    using Spi = hapi::APIOf<oneBus::SpiAPI, oneBus::SpiMaster<Speed>,
+                            AvrSpiCore<CpuHz, Mode, MSBFirst>>;
   }
 
 } // hw::avr

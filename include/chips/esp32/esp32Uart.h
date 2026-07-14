@@ -20,6 +20,9 @@
   #include <driver/uart.h>
 #endif
 
+#include <hapi/hapi.h>
+#include <oneBus/uart.h>
+
 namespace hw::esp32 {
 
   template<int N = 0, int RxPin = -1, int TxPin = -1>
@@ -70,5 +73,20 @@ namespace hw::esp32 {
       static void begin() { Base::begin(); }
     };
   };
+
+  // ============================================================
+  // Board-specific namespace aliases for oneBus UART API
+  // Nested in namespace esp32 to match esp32Device.h's convention
+  // ============================================================
+  namespace esp32 {
+
+    template<uint32_t BaudRate>
+    using Serial0 = hapi::APIOf<oneBus::UartAPI, oneBus::Uart<BaudRate>, Esp32UsartCore<0>>;
+    template<uint32_t BaudRate>
+    using Serial1 = hapi::APIOf<oneBus::UartAPI, oneBus::Uart<BaudRate>, Esp32UsartCore<1>>;
+    template<uint32_t BaudRate>
+    using Serial2 = hapi::APIOf<oneBus::UartAPI, oneBus::Uart<BaudRate>, Esp32UsartCore<2>>;
+
+  } // hw::esp32::esp32
 
 } // hw::esp32

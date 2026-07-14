@@ -18,6 +18,8 @@
 
 #pragma once
 #include <stdint.h>
+#include <hapi/hapi.h>
+#include <oneBus/uart.h>
 
 namespace hw::avr {
 
@@ -67,5 +69,39 @@ namespace hw::avr {
       static void begin() { Base::begin(); }
     };
   };
+
+  // ============================================================
+  // Board-specific namespace aliases for oneBus UART API
+  // ============================================================
+
+  namespace mega {
+    template<uint32_t BaudRate, uint32_t CpuHz = 16000000UL>
+    using Serial0 = hapi::APIOf<oneBus::UartAPI, oneBus::Uart<BaudRate>,
+                                AvrUsartCore<0xC0u, CpuHz>>;
+  }
+
+  namespace mega2560 {
+    template<uint32_t BaudRate, uint32_t CpuHz = 16000000UL>
+    using Serial0 = hapi::APIOf<oneBus::UartAPI, oneBus::Uart<BaudRate>,
+                                AvrUsartCore<0xC0u, CpuHz>>;
+    template<uint32_t BaudRate, uint32_t CpuHz = 16000000UL>
+    using Serial1 = hapi::APIOf<oneBus::UartAPI, oneBus::Uart<BaudRate>,
+                                AvrUsartCore<0xC8u, CpuHz>>;
+    template<uint32_t BaudRate, uint32_t CpuHz = 16000000UL>
+    using Serial2 = hapi::APIOf<oneBus::UartAPI, oneBus::Uart<BaudRate>,
+                                AvrUsartCore<0xD0u, CpuHz>>;
+    template<uint32_t BaudRate, uint32_t CpuHz = 16000000UL>
+    using Serial3 = hapi::APIOf<oneBus::UartAPI, oneBus::Uart<BaudRate>,
+                                AvrUsartCore<0x130u, CpuHz>>;
+  }
+
+  namespace mega1284 {
+    template<uint32_t BaudRate, uint32_t CpuHz = 16000000UL>
+    using Serial0 = hapi::APIOf<oneBus::UartAPI, oneBus::Uart<BaudRate>,
+                                AvrUsartCore<0xC0u, CpuHz>>;
+    template<uint32_t BaudRate, uint32_t CpuHz = 16000000UL>
+    using Serial1 = hapi::APIOf<oneBus::UartAPI, oneBus::Uart<BaudRate>,
+                                AvrUsartCore<0xC8u, CpuHz>>;
+  }
 
 } // hw::avr
