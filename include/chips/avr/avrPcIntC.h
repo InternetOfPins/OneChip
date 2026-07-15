@@ -35,7 +35,7 @@ namespace hw::avr {
 
     inline static volatile uint8_t _last = 0;
 
-    template<typename EdgeMode>
+    // Non-templatized wrappers (trait contract)
     static void begin() {
       DDRC  &= ~mask;         // input
       PORTC |=  mask;         // pull-up on
@@ -45,12 +45,10 @@ namespace hw::avr {
       sei();
     }
 
-    template<typename EdgeMode>
     static uint8_t read() {
       return (PINC & mask);
     }
 
-    template<typename EdgeMode>
     static bool changed() {
       uint8_t now = read();
       uint8_t diff = now ^ _last;
