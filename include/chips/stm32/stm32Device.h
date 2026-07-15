@@ -3,6 +3,7 @@
 #include <chips/stm32/stm32Uart.h>
 #include <chips/stm32/stm32Twi.h>
 #include <chips/stm32/stm32Spi.h>
+#include <chips/stm32/stm32ExtiInt.h>
 #if defined(STM32F1xx)
   #include <chips/stm32/stm32F1Port.h>
 #else
@@ -70,4 +71,28 @@ namespace hw::stm32 {
     };
   };
 
+  // ── Interrupt source aliases (OnChange/OnRise/OnFall) ────────────────
+  namespace interrupt_sources {
+    template<int PIN0, int PIN1 = -1, int PIN2 = -1>
+    using OnChange = ExtiInt<PIN0, PIN1, PIN2>;
+
+    template<int PIN0, int PIN1 = -1, int PIN2 = -1>
+    using OnRise = ExtiInt<PIN0, PIN1, PIN2>;
+
+    template<int PIN0, int PIN1 = -1, int PIN2 = -1>
+    using OnFall = ExtiInt<PIN0, PIN1, PIN2>;
+  }
+
 } // hw::stm32
+
+// Platform-agnostic alias
+namespace chip {
+  template<int PIN0, int PIN1 = -1, int PIN2 = -1>
+  using OnChange = hw::stm32::interrupt_sources::OnChange<PIN0, PIN1, PIN2>;
+
+  template<int PIN0, int PIN1 = -1, int PIN2 = -1>
+  using OnRise = hw::stm32::interrupt_sources::OnRise<PIN0, PIN1, PIN2>;
+
+  template<int PIN0, int PIN1 = -1, int PIN2 = -1>
+  using OnFall = hw::stm32::interrupt_sources::OnFall<PIN0, PIN1, PIN2>;
+}

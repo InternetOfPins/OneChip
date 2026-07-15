@@ -3,6 +3,7 @@
 #include <chips/esp32/esp32Gpio.h>
 #include <chips/esp32/esp32Twi.h>
 #include <chips/esp32/esp32Spi.h>
+#include <chips/esp32/esp32GpioInt.h>
 
 namespace hw::esp32 {
 
@@ -39,7 +40,31 @@ namespace hw::esp32 {
     };
   };
 
+  // ── Interrupt source aliases (OnChange/OnRise/OnFall) ────────────────
+  namespace interrupt_sources {
+    template<int GPIO0, int GPIO1 = -1, int GPIO2 = -1>
+    using OnChange = GpioInt<GPIO0, GPIO1, GPIO2>;
+
+    template<int GPIO0, int GPIO1 = -1, int GPIO2 = -1>
+    using OnRise = GpioInt<GPIO0, GPIO1, GPIO2>;
+
+    template<int GPIO0, int GPIO1 = -1, int GPIO2 = -1>
+    using OnFall = GpioInt<GPIO0, GPIO1, GPIO2>;
+  }
+
   // chip:: alias — all esp32 headers expose their types in hw::esp32::esp32 namespace.
   namespace chip = esp32;
 
 } // hw::esp32
+
+// Platform-agnostic alias
+namespace chip {
+  template<int GPIO0, int GPIO1 = -1, int GPIO2 = -1>
+  using OnChange = hw::esp32::interrupt_sources::OnChange<GPIO0, GPIO1, GPIO2>;
+
+  template<int GPIO0, int GPIO1 = -1, int GPIO2 = -1>
+  using OnRise = hw::esp32::interrupt_sources::OnRise<GPIO0, GPIO1, GPIO2>;
+
+  template<int GPIO0, int GPIO1 = -1, int GPIO2 = -1>
+  using OnFall = hw::esp32::interrupt_sources::OnFall<GPIO0, GPIO1, GPIO2>;
+}
