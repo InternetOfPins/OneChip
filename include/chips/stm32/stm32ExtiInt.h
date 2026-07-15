@@ -43,12 +43,14 @@ namespace hw::stm32 {
     template<typename EdgeMode>
     static void begin() {
       // Framework-dependent: CMSIS vs HAL vs bare-metal
-      // This is a sketch; real impl requires:
-      // - GPIO clock enable (RCC)
-      // - SYSCFG clock enable (for EXTI routing)
-      // - EXTI line config (SYSCFG_EXTI_PORT)
-      // - EXTI edge trigger (CR1, CR2 registers)
-      // - NVIC enable
+      // Sketch: mimics AVR PCINT pattern (per-port enable)
+      // Real impl requires:
+      // - GPIO clock enable per port (RCC AHBENR)
+      // - SYSCFG clock enable (RCC APB2ENR)
+      // - EXTI line config (SYSCFG_EXTICR1-4) — maps port+pin → EXTI line
+      // - EXTI edge trigger (CR1=rising, CR2=falling)
+      // - NVIC enable per line (NVIC_EnableIRQ + priority)
+      // Similar to: PCICR |= (1<<PCIE1); PCMSK1 |= mask;
       _last = read();
     }
 
