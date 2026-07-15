@@ -4,6 +4,7 @@
 #include <chips/avr/avrUart.h>
 #include <chips/avr/avrTwi.h>
 #include <chips/avr/avrSpi.h>
+#include <chips/avr/avrPcIntC.h>
 
 namespace hw::avr {
 
@@ -56,4 +57,29 @@ namespace hw::avr {
     };
   };
 
+  // ── Interrupt source aliases (OnChange/OnRise/OnFall) ────────────────
+  // Maps chip::OnChange<> to platform-specific PcIntC implementation
+  namespace interrupt_sources {
+    template<uint8_t Pin0, uint8_t Pin1 = 0xFF, uint8_t Pin2 = 0xFF>
+    using OnChange = PcIntC<Pin0, Pin1, Pin2>;
+
+    template<uint8_t Pin0, uint8_t Pin1 = 0xFF, uint8_t Pin2 = 0xFF>
+    using OnRise = PcIntC<Pin0, Pin1, Pin2>;
+
+    template<uint8_t Pin0, uint8_t Pin1 = 0xFF, uint8_t Pin2 = 0xFF>
+    using OnFall = PcIntC<Pin0, Pin1, Pin2>;
+  }
+
 } // hw::avr
+
+// Platform-agnostic alias: chip::OnChange<> resolves to AVR implementation
+namespace chip {
+  template<uint8_t Pin0, uint8_t Pin1 = 0xFF, uint8_t Pin2 = 0xFF>
+  using OnChange = hw::avr::interrupt_sources::OnChange<Pin0, Pin1, Pin2>;
+
+  template<uint8_t Pin0, uint8_t Pin1 = 0xFF, uint8_t Pin2 = 0xFF>
+  using OnRise = hw::avr::interrupt_sources::OnRise<Pin0, Pin1, Pin2>;
+
+  template<uint8_t Pin0, uint8_t Pin1 = 0xFF, uint8_t Pin2 = 0xFF>
+  using OnFall = hw::avr::interrupt_sources::OnFall<Pin0, Pin1, Pin2>;
+}
