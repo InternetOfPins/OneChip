@@ -5,12 +5,14 @@ using namespace hw::avr::chip;  // Explicitly bring chip definitions into scope
 using namespace onePin;
 using namespace oneBit;
 
-// ── Bare-metal IOP: Timer0-based SysTick, manual interrupt handling ──────────
+// ── IOP framework: Timer0-based SysTick ──────────────────────────────────────
 using SysTick = SysTick0<>;
-using Led1    = AVR::OutPin<Pins<0>, PortB>;  // PB0 works across all tiny targets
+using Led1    = AVR::OutPin<Pins<0>, PortB>;  // PB0 works across all targets
 using Board   = AVR::Board<Boot<SysTick>, Led1>;
 
-IOP_TIMER0_ISR(Board)  // Timer0 overflow ISR wired to Board
+#ifdef IOP
+IOP_TIMER0_ISR(Board)  // Bare-metal: Timer0 overflow ISR wired to Board
+#endif
 
 Led1 led1;
 SysTick::Blink<100, 900> blink1;
