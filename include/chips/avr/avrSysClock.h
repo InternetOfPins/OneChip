@@ -36,17 +36,32 @@ namespace hw {
 namespace avr {
 
   // ============================================================
-  // SysClock<CSPolicy, PrescaleValue, CpuHz>
+  // Mixins for optional microsecond precision
+  // ============================================================
+  struct OverflowCounterWithMicros {
+    inline static volatile uint32_t _overflow_count = 0;
+  };
+
+  struct OverflowCounterNoMicros {
+    // Empty: no _overflow_count allocated
+  };
+
+  // ============================================================
+  // SysClock<CSPolicy, PrescaleValue, CpuHz, HasMicros>
   // HAPI component — hardware access via O::regs() / O::timsk() from TimerCore below.
+  // HasMicros=false saves 4 bytes RAM by omitting _overflow_count (millis-only mode)
   // ============================================================
   template<typename CSPolicy  = CS1Policy,
            uint8_t  PrescaleValue = 64,
-           uint32_t CpuHz         = 16000000UL>
+           uint32_t CpuHz         = 16000000UL,
+           bool     HasMicros     = true>
   struct SysClock {
     template<typename O>
-    struct Part : O {
+    struct Part : O,
+                  std::conditional_t<HasMicros, OverflowCounterWithMicros, OverflowCounterNoMicros> {
       using Base = O;
       using Base::Base;
+      using OverflowCounter = std::conditional_t<HasMicros, OverflowCounterWithMicros, OverflowCounterNoMicros>;
 
       // timing constants visible through the chain type
       static constexpr uint8_t  PRESCALE_CODE = CSPolicy::prescaleCode(PrescaleValue);
@@ -58,7 +73,7 @@ namespace avr {
 
       inline static volatile uint32_t _ms             = 0;
       inline static volatile uint16_t _fract          = 0;
-      inline static volatile uint32_t _overflow_count = 0;  // raw count for micros()
+      // _overflow_count inherited from OverflowCounter (either full or empty)
 
 #ifndef IOP
       static uint32_t millis() { return ::millis(); }
@@ -74,7 +89,9 @@ namespace avr {
       }
 
       static void onOverflow() {
-        _overflow_count++;
+        if constexpr (HasMicros) {
+          OverflowCounter::_overflow_count++;
+        }
         uint32_t m = _ms;
         uint16_t f = _fract;
         m += MS_PER_OVF;
@@ -97,19 +114,24 @@ namespace avr {
       }
 
       static uint32_t micros() {
-        uint32_t ov;
-        uint8_t  t;
+        if constexpr (HasMicros) {
+          uint32_t ov;
+          uint8_t  t;
 #  ifdef __AVR__
-        uint8_t sreg = SREG; cli();
-        ov = _overflow_count;
-        t  = Base::regs().cnt;
-        if (Base::tifr().tov && t < 255) ov++;
-        SREG = sreg;
+          uint8_t sreg = SREG; cli();
+          ov = OverflowCounter::_overflow_count;
+          t  = Base::regs().cnt;
+          if (Base::tifr().tov && t < 255) ov++;
+          SREG = sreg;
 #  else
-        ov = _overflow_count;
-        t  = 0;
+          ov = OverflowCounter::_overflow_count;
+          t  = 0;
 #  endif
-        return (ov * 256UL + t) * US_PER_TICK;
+          return (ov * 256UL + t) * US_PER_TICK;
+        } else {
+          // millis-only mode: return millis * 1000 (no sub-millisecond precision)
+          return millis() * 1000UL;
+        }
       }
 #endif
 
@@ -144,46 +166,50 @@ namespace avr {
   // ============================================================
   namespace mega {
     // TC0 — 8-bit, CS1Policy, addresses: TCCR0A=0x44 TIFR0=0x35 TIMSK0=0x6E
-    template<uint32_t CpuHz = 16000000UL>
+    // Default: HasMicros=true (full precision for ATmega)
+    template<uint32_t CpuHz = 16000000UL, bool HasMicros = true>
     using SysTick0 = hapi::APIOf<onePin::BootDef,
-                                  SysClock<CS1Policy, 64, CpuHz>,
+                                  SysClock<CS1Policy, 64, CpuHz, HasMicros>,
                                   TimerCore<tc8_regs, 0x44, 0x35, 0x6E>>;
     // TC2 — 8-bit, CS2Policy (different prescaler table), addresses: TCCR2A=0xB0 TIFR2=0x37 TIMSK2=0x70
-    template<uint32_t CpuHz = 16000000UL>
+    template<uint32_t CpuHz = 16000000UL, bool HasMicros = true>
     using SysTick2 = hapi::APIOf<onePin::BootDef,
-                                  SysClock<CS2Policy, 64, CpuHz>,
+                                  SysClock<CS2Policy, 64, CpuHz, HasMicros>,
                                   TimerCore<tc8_regs, 0xB0, 0x37, 0x70>>;
   }
 
   namespace mega2560 {
-    template<uint32_t CpuHz = 16000000UL> using SysTick0 = mega::SysTick0<CpuHz>;
-    template<uint32_t CpuHz = 16000000UL> using SysTick2 = mega::SysTick2<CpuHz>;
+    template<uint32_t CpuHz = 16000000UL, bool HasMicros = true> using SysTick0 = mega::SysTick0<CpuHz, HasMicros>;
+    template<uint32_t CpuHz = 16000000UL, bool HasMicros = true> using SysTick2 = mega::SysTick2<CpuHz, HasMicros>;
   }
 
   namespace mega1284 {
-    template<uint32_t CpuHz = 16000000UL> using SysTick0 = mega::SysTick0<CpuHz>;
-    template<uint32_t CpuHz = 16000000UL> using SysTick2 = mega::SysTick2<CpuHz>;
+    template<uint32_t CpuHz = 16000000UL, bool HasMicros = true> using SysTick0 = mega::SysTick0<CpuHz, HasMicros>;
+    template<uint32_t CpuHz = 16000000UL, bool HasMicros = true> using SysTick2 = mega::SysTick2<CpuHz, HasMicros>;
   }
 
   namespace tiny85 {
     // TC0 — 8-bit, CS1Policy
     // Addresses differ from mega: TCCR0A=0x4A TIFR0=0x35 TIMSK0=0x6E
-    template<uint32_t CpuHz = 8000000UL>
+    // Default: HasMicros=false (saves 4 bytes RAM on tiny, millis-only mode)
+    template<uint32_t CpuHz = 8000000UL, bool HasMicros = false>
     using SysTick0 = hapi::APIOf<onePin::BootDef,
-                                  SysClock<CS1Policy, 64, CpuHz>,
+                                  SysClock<CS1Policy, 64, CpuHz, HasMicros>,
                                   TimerCore<tc8_regs, 0x4A, 0x35, 0x6E>>;
   }
 
   namespace tiny45 {
     // Identical register layout to tiny85 (same die family)
-    template<uint32_t CpuHz = 8000000UL>
-    using SysTick0 = tiny85::SysTick0<CpuHz>;
+    // Default: HasMicros=false (saves 4 bytes RAM, millis-only mode)
+    template<uint32_t CpuHz = 8000000UL, bool HasMicros = false>
+    using SysTick0 = tiny85::SysTick0<CpuHz, HasMicros>;
   }
 
   namespace tiny13 {
     // Identical register layout to tiny85 (same Timer0 addresses)
-    template<uint32_t CpuHz = 9600000UL>
-    using SysTick0 = tiny85::SysTick0<CpuHz>;
+    // Default: HasMicros=false (saves 4 bytes RAM, millis-only mode)
+    template<uint32_t CpuHz = 9600000UL, bool HasMicros = false>
+    using SysTick0 = tiny85::SysTick0<CpuHz, HasMicros>;
   }
 
 }} // hw::avr

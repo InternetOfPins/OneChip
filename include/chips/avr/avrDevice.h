@@ -96,15 +96,15 @@ namespace chip {
 // Chip-family namespace resolution for SysTick0
 #ifdef __AVR_ATtiny85__
   namespace chip {
-    template<uint32_t CpuHz = 8000000UL> using SysTick0 = hw::avr::tiny85::SysTick0<CpuHz>;
+    template<uint32_t CpuHz = 8000000UL, bool HasMicros = false> using SysTick0 = hw::avr::tiny85::SysTick0<CpuHz, HasMicros>;
   }
 #elif defined(__AVR_ATtiny45__)
   namespace chip {
-    template<uint32_t CpuHz = 8000000UL> using SysTick0 = hw::avr::tiny45::SysTick0<CpuHz>;
+    template<uint32_t CpuHz = 8000000UL, bool HasMicros = false> using SysTick0 = hw::avr::tiny45::SysTick0<CpuHz, HasMicros>;
   }
 #elif defined(__AVR_ATtiny13__)
   namespace chip {
-    template<uint32_t CpuHz = 9600000UL> using SysTick0 = hw::avr::tiny13::SysTick0<CpuHz>;
+    template<uint32_t CpuHz = 9600000UL, bool HasMicros = false> using SysTick0 = hw::avr::tiny13::SysTick0<CpuHz, HasMicros>;
   }
 #else
   namespace chip {
