@@ -86,6 +86,7 @@ namespace hw::avr {
   using Mega2560Eeprom = AvrEeprom<4096, 8>;
   using Tiny85Eeprom   = AvrEeprom< 512, 4>;
   using Tiny45Eeprom   = AvrEeprom< 256, 4>;
+  using Tiny13Eeprom   = AvrEeprom<  64, 4>;
 
 } // hw::avr
 #endif

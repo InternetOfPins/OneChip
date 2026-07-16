@@ -159,4 +159,46 @@ namespace hw::avr {
   // ATtiny45 timer0/timer1 init components are register-identical to
   // ATtiny85's — reuse ATtiny85_Timer0Pwm*/ATtiny85_Timer1Clk* directly.
 
+  // ── ATtiny13 peripheral catalog ──────────────────────────────────────────
+  // 8-pin DIP/SOIC: PB0..PB5 (PB5=RESET). Single port (B).
+  // Timer: TC0 (8-bit) only — no TC1 like 45/85.
+  //
+  // ATtiny13 register addresses (memory-mapped = I/O + 0x20):
+  //   PINB=0x36  DDRB=0x37  PORTB=0x38
+  //   TCCR0A=0x4A  OCR0A=0x49  OCR0B=0x48  TCCR0B=0x53
+  //
+  // OC pin map:
+  //   OC0A → PB0 (pin 5)     OC0B → PB1 (pin 6)
+
+  struct ATtiny13 {
+    // Port B: all 6 usable pins (PB0..PB5)
+    struct PortB : AVRPort<0x36, 0x37, 0x38> {};
+
+    // Timer0 — 8-bit (same addresses as ATtiny45/85)
+    struct OC0A : AvrOC<0x49, 0x4A, 7, 0x38, 0x37, 0> {};  // PB0
+    struct OC0B : AvrOC<0x48, 0x4A, 5, 0x38, 0x37, 1> {};  // PB1
+
+    // Flash / RAM / EEPROM
+    static constexpr uint16_t flashSize  = 1024;
+    static constexpr uint16_t ramSize    =  64;
+    using Eep = Tiny13Eeprom;  // 64B, 4B page
+
+    // Function bit positions on PortB
+    static constexpr uint8_t MOSI_bit = 0;  // PB0 (USI DI)
+    static constexpr uint8_t MISO_bit = 1;  // PB1 (USI DO)
+    static constexpr uint8_t SCK_bit  = 2;  // PB2 (USI SCK / SCL)
+    static constexpr uint8_t SDA_bit  = 0;  // PB0 (USI DI — I2C slave only)
+    static constexpr uint8_t SCL_bit  = 2;  // PB2 (USI SCK)
+    static constexpr uint8_t INT0_bit = 2;  // PB2 (INT0)
+    static constexpr uint8_t RESET_bit= 5;  // PB5 (active-low RESET)
+
+    struct BoardDef {
+      BoardDef() = delete;
+      static void begin() {}
+    };
+    template<typename... CC> using Board = hapi::APIOf<BoardDef, CC...>;
+  };
+
+  // ATtiny13 timer init components — reuse ATtiny85_Timer0Pwm* (same register addresses)
+
 } // hw::avr

@@ -1,5 +1,5 @@
-// ── ATtiny45 (minimal blink) ─────────────────────────────────────────────────
-#ifdef __AVR_ATtiny45__
+// ── ATtiny45 / ATtiny13 (minimal blink, direct registers) ──────────────────
+#if defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny13__)
 #include <avr/io.h>
 
 int main() {
