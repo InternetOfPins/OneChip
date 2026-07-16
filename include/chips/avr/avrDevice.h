@@ -2,9 +2,12 @@
 #include <chips/avr/avrSysClock.h>
 #include <chips/avr/avrPort.h>
 #include <chips/avr/avrUart.h>
-#include <chips/avr/avrTwi.h>
-#include <chips/avr/avrSpi.h>
-#include <chips/avr/avrPcIntC.h>
+// TWI/SPI not available on ATtiny family
+#if !defined(__AVR_ATtiny13__) && !defined(__AVR_ATtiny45__) && !defined(__AVR_ATtiny85__)
+  #include <chips/avr/avrTwi.h>
+  #include <chips/avr/avrSpi.h>
+  #include <chips/avr/avrPcIntC.h>
+#endif
 
 namespace hw::avr {
 
@@ -58,7 +61,9 @@ namespace hw::avr {
   };
 
   // ── Interrupt source aliases (OnChange/OnRise/OnFall) ────────────────
-  // Maps chip::OnChange<> to platform-specific PcIntC implementation
+  // Maps chip::OnChange<> to platform-specific implementation
+  // (ATmega uses PcIntC, ATtiny uses platform-specific handlers)
+#if !defined(__AVR_ATtiny13__) && !defined(__AVR_ATtiny45__) && !defined(__AVR_ATtiny85__)
   namespace interrupt_sources {
     template<uint8_t Pin0, uint8_t Pin1 = 0xFF, uint8_t Pin2 = 0xFF>
     using OnChange = PcIntC<Pin0, Pin1, Pin2>;
@@ -69,10 +74,13 @@ namespace hw::avr {
     template<uint8_t Pin0, uint8_t Pin1 = 0xFF, uint8_t Pin2 = 0xFF>
     using OnFall = PcIntC<Pin0, Pin1, Pin2>;
   }
+#endif
 
 } // hw::avr
 
 // Platform-agnostic alias: chip::OnChange<> resolves to AVR implementation
+// and chip::SysTick0<> resolves per chip family
+#if !defined(__AVR_ATtiny13__) && !defined(__AVR_ATtiny45__) && !defined(__AVR_ATtiny85__)
 namespace chip {
   template<uint8_t Pin0, uint8_t Pin1 = 0xFF, uint8_t Pin2 = 0xFF>
   using OnChange = hw::avr::interrupt_sources::OnChange<Pin0, Pin1, Pin2>;
@@ -83,3 +91,24 @@ namespace chip {
   template<uint8_t Pin0, uint8_t Pin1 = 0xFF, uint8_t Pin2 = 0xFF>
   using OnFall = hw::avr::interrupt_sources::OnFall<Pin0, Pin1, Pin2>;
 }
+#endif
+
+// Chip-family namespace resolution for SysTick0
+#ifdef __AVR_ATtiny85__
+  namespace chip {
+    template<uint32_t CpuHz = 8000000UL> using SysTick0 = hw::avr::tiny85::SysTick0<CpuHz>;
+  }
+#elif defined(__AVR_ATtiny45__)
+  namespace chip {
+    template<uint32_t CpuHz = 8000000UL> using SysTick0 = hw::avr::tiny45::SysTick0<CpuHz>;
+  }
+#elif defined(__AVR_ATtiny13__)
+  namespace chip {
+    template<uint32_t CpuHz = 9600000UL> using SysTick0 = hw::avr::tiny13::SysTick0<CpuHz>;
+  }
+#else
+  namespace chip {
+    template<uint32_t CpuHz = 16000000UL> using SysTick0 = hw::avr::mega::SysTick0<CpuHz>;
+    template<uint32_t CpuHz = 16000000UL> using SysTick2 = hw::avr::mega::SysTick2<CpuHz>;
+  }
+#endif

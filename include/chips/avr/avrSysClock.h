@@ -165,6 +165,27 @@ namespace avr {
     template<uint32_t CpuHz = 16000000UL> using SysTick2 = mega::SysTick2<CpuHz>;
   }
 
+  namespace tiny85 {
+    // TC0 — 8-bit, CS1Policy
+    // Addresses differ from mega: TCCR0A=0x4A TIFR0=0x35 TIMSK0=0x6E
+    template<uint32_t CpuHz = 8000000UL>
+    using SysTick0 = hapi::APIOf<onePin::BootDef,
+                                  SysClock<CS1Policy, 64, CpuHz>,
+                                  TimerCore<tc8_regs, 0x4A, 0x35, 0x6E>>;
+  }
+
+  namespace tiny45 {
+    // Identical register layout to tiny85 (same die family)
+    template<uint32_t CpuHz = 8000000UL>
+    using SysTick0 = tiny85::SysTick0<CpuHz>;
+  }
+
+  namespace tiny13 {
+    // Identical register layout to tiny85 (same Timer0 addresses)
+    template<uint32_t CpuHz = 9600000UL>
+    using SysTick0 = tiny85::SysTick0<CpuHz>;
+  }
+
 }} // hw::avr
 
 // Wires a timer overflow ISR to Board::onOverflow().
