@@ -111,7 +111,9 @@ namespace chip {
   }
 #else
   namespace chip {
-    template<uint32_t CpuHz = 16000000UL> using SysTick0 = hw::avr::mega::SysTick0<CpuHz>;
-    template<uint32_t CpuHz = 16000000UL> using SysTick2 = hw::avr::mega::SysTick2<CpuHz>;
+    template<uint32_t CpuHz = 16000000UL> using SysTick0     = hw::avr::mega::SysTick0<CpuHz>;
+    template<uint32_t CpuHz = 16000000UL> using SysTick2     = hw::avr::mega::SysTick2<CpuHz>;
+    template<uint32_t CpuHz = 16000000UL> using SysTick0Full = hw::avr::mega::SysTick0Full<CpuHz>;
+    template<uint32_t CpuHz = 16000000UL> using SysTick2Full = hw::avr::mega::SysTick2Full<CpuHz>;
   }
 #endif

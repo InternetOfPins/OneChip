@@ -188,28 +188,45 @@ namespace avr {
   // ============================================================
   namespace mega {
     // TC0 — 8-bit, CS1Policy, addresses: TCCR0A=0x44 TIFR0=0x35 TIMSK0=0x6E
-    // Default: with OverflowCounter (full precision)
+    // Default: millis-only (no OverflowCounter, saves 4 bytes RAM) — matches
+    // tiny85/tiny45/tiny13's convention below. Mega has RAM to spare, but
+    // nothing should pay for micros() precision it never asked for.
     template<uint32_t CpuHz = 16000000UL>
     using SysTick0 = hapi::APIOf<onePin::BootDef,
                                   SysClock<CS1Policy, 64, CpuHz>,
-                                  OverflowCounter,
                                   TimerCore<tc8_regs, 0x44, 0x35, 0x6E>>;
+    // Opt-in to full precision
+    template<uint32_t CpuHz = 16000000UL>
+    using SysTick0Full = hapi::APIOf<onePin::BootDef,
+                                      SysClock<CS1Policy, 64, CpuHz>,
+                                      OverflowCounter,
+                                      TimerCore<tc8_regs, 0x44, 0x35, 0x6E>>;
     // TC2 — 8-bit, CS2Policy (different prescaler table), addresses: TCCR2A=0xB0 TIFR2=0x37 TIMSK2=0x70
+    // Default: millis-only, same reasoning as SysTick0 above.
     template<uint32_t CpuHz = 16000000UL>
     using SysTick2 = hapi::APIOf<onePin::BootDef,
                                   SysClock<CS2Policy, 64, CpuHz>,
-                                  OverflowCounter,
                                   TimerCore<tc8_regs, 0xB0, 0x37, 0x70>>;
+    // Opt-in to full precision
+    template<uint32_t CpuHz = 16000000UL>
+    using SysTick2Full = hapi::APIOf<onePin::BootDef,
+                                      SysClock<CS2Policy, 64, CpuHz>,
+                                      OverflowCounter,
+                                      TimerCore<tc8_regs, 0xB0, 0x37, 0x70>>;
   }
 
   namespace mega2560 {
     template<uint32_t CpuHz = 16000000UL> using SysTick0 = mega::SysTick0<CpuHz>;
     template<uint32_t CpuHz = 16000000UL> using SysTick2 = mega::SysTick2<CpuHz>;
+    template<uint32_t CpuHz = 16000000UL> using SysTick0Full = mega::SysTick0Full<CpuHz>;
+    template<uint32_t CpuHz = 16000000UL> using SysTick2Full = mega::SysTick2Full<CpuHz>;
   }
 
   namespace mega1284 {
     template<uint32_t CpuHz = 16000000UL> using SysTick0 = mega::SysTick0<CpuHz>;
     template<uint32_t CpuHz = 16000000UL> using SysTick2 = mega::SysTick2<CpuHz>;
+    template<uint32_t CpuHz = 16000000UL> using SysTick0Full = mega::SysTick0Full<CpuHz>;
+    template<uint32_t CpuHz = 16000000UL> using SysTick2Full = mega::SysTick2Full<CpuHz>;
   }
 
   namespace tiny85 {
