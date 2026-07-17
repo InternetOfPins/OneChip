@@ -7,6 +7,7 @@
 
 #pragma once
 #include <hapi/hapi.h>
+#include <chips/avr/avrChipAlias.h>
 
 #ifdef __AVR__
   #include <stdint.h>
@@ -106,29 +107,7 @@ namespace avr {
 
 }} // hw::avr
 
-// ============================================================
-// chip::PortB/C/D — mirrors the alias in avrTC.h
-// If avrTC.h is included first, no redefinition needed here.
-// ============================================================
-
-#if !defined(HW_AVR_CHIP_ALIAS_DEFINED)
-  #define HW_AVR_CHIP_ALIAS_DEFINED
-  #if defined(__AVR_ATmega640__)  || defined(__AVR_ATmega1280__) || \
-      defined(__AVR_ATmega1281__) || defined(__AVR_ATmega2560__) || \
-      defined(__AVR_ATmega2561__)
-    namespace hw { namespace avr { namespace chip = mega2560; }}
-  #elif defined(__AVR_ATmega1284__)
-    namespace hw { namespace avr { namespace chip = mega1284; }}
-  #elif defined(__AVR_ATtiny85__)
-    namespace hw { namespace avr { namespace chip = tiny85; }}
-  #elif defined(__AVR_ATtiny45__)
-    namespace hw { namespace avr { namespace chip = tiny45; }}
-  #elif defined(__AVR_ATtiny13__)
-    namespace hw { namespace avr { namespace chip = tiny13; }}
-  #else
-    namespace hw { namespace avr { namespace chip = mega; }}
-  #endif
-#endif
+// chip::PortB/C/D resolves via avrChipAlias.h, included above.
 
 // ============================================================
 // Usage:

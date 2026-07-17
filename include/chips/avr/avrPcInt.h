@@ -8,6 +8,7 @@
 
 #pragma once
 #include <hapi/hapi.h>
+#include <chips/avr/avrChipAlias.h>
 
 #ifdef __AVR__
   #include <stdint.h>
@@ -109,22 +110,10 @@ namespace avr {
 
 }} // hw::avr
 
-// ============================================================
-// chip::PcInt0/1/2 — macro-selected aliases, mirrors avrTC.h convention.
-// ============================================================
-
-#if !defined(HW_AVR_CHIP_ALIAS_DEFINED)
-  #define HW_AVR_CHIP_ALIAS_DEFINED
-  #if defined(__AVR_ATmega640__)  || defined(__AVR_ATmega1280__) || \
-      defined(__AVR_ATmega1281__) || defined(__AVR_ATmega2560__) || \
-      defined(__AVR_ATmega2561__)
-    namespace hw { namespace avr { namespace chip = mega2560; }}
-  #elif defined(__AVR_ATmega1284__) || defined(__AVR_ATmega1284P__)
-    namespace hw { namespace avr { namespace chip = mega1284; }}
-  #else
-    namespace hw { namespace avr { namespace chip = mega; }}
-  #endif
-#endif
+// chip::PcInt0/1/2 resolves via avrChipAlias.h, included above.
+// (ATtiny chips don't get PcInt0/1/2 members — see mega/mega2560/mega1284
+// namespaces above; on those chips avrDevice.h never includes this file
+// at all, since ATtiny's pin-change interrupt handling is unrelated.)
 
 // ============================================================
 // Usage:
