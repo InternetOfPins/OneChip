@@ -138,7 +138,7 @@ namespace avr {
     using IsTimer = std::true_type;
 
     inline static void (*handler_)() = nullptr;
-    static void attach(void(*f)()) { fn = f; }
+    static void attach(void(*f)()) { handler_ = f; }
     static void act() {
       if constexpr (fn != nullptr) fn();
       if (handler_) handler_();
@@ -159,7 +159,7 @@ namespace avr {
         return *reinterpret_cast<timsk_t*>(TIMSK_ADDR);
       }
 
-      static void attach(void(*f)()) { fn = f; }
+      static void attach(void(*f)()) { handler_ = f; }
       static void act() {
         if constexpr (fn != nullptr) fn();
         if (handler_) handler_();
@@ -181,6 +181,104 @@ namespace avr {
       static void setWaveMode(uint8_t n) {
         regs().crA = (regs().crA & ~0b00000011) | (n & 0b11);
         regs().wgm2 = n >> 2;
+      }
+    };
+  };
+
+  // ============================================================
+  // TimerCoreI — individually-addressed timer core
+  // ============================================================
+
+  /// @brief Zero-state proxy for a single memory-mapped byte register.
+  template<uintptr_t Addr>
+  struct RegProxy8 {
+    operator uint8_t() const { return *reinterpret_cast<volatile uint8_t*>(Addr); }
+    RegProxy8& operator=(uint8_t v) { *reinterpret_cast<volatile uint8_t*>(Addr) = v; return *this; }
+  };
+
+  /// @brief Zero-state proxy for a single bit within a memory-mapped byte register.
+  template<uintptr_t Addr, uint8_t Bit>
+  struct BitProxy8 {
+    operator bool() const { return (*reinterpret_cast<volatile uint8_t*>(Addr)) & uint8_t(1 << Bit); }
+    BitProxy8& operator=(bool v) {
+      auto& r = *reinterpret_cast<volatile uint8_t*>(Addr);
+      if (v) r |= uint8_t(1 << Bit); else r &= ~uint8_t(1 << Bit);
+      return *this;
+    }
+  };
+
+  /// @brief Individually-addressed 8-bit timer core.
+  /// TimerCore (above) maps a single contiguous Regs struct onto one BASE
+  /// address — that only works when a chip's TCCRA/TCCRB/TCNT/OCRA/OCRB
+  /// registers sit at consecutive addresses in that exact order, as they
+  /// do on ATmega. ATtiny TC0 registers are scattered, interleaved with
+  /// other peripherals' registers (e.g. ATtiny85/45's Timer1), so each
+  /// register needs its own address — hence separate NTTPs here instead
+  /// of one BASE.
+  /// WGM/COM/CS bit positions within TCCRA/TCCRB are the standard AVR
+  /// 8-bit-timer layout (portable across chips); only the addresses and
+  /// the TOV/TOIE/OCIEA bit positions vary per chip (ATtiny85/45 share
+  /// one TIFR/TIMSK with Timer1; ATtiny13 has dedicated TIFR0/TIMSK0).
+  /// Same Part<O> surface as TimerCore, so Prescaler<>/SysClock<> compose
+  /// unchanged.
+  template<uintptr_t TCCRA_ADDR, uintptr_t TCCRB_ADDR, uintptr_t TCNT_ADDR,
+           uintptr_t OCRA_ADDR, uintptr_t OCRB_ADDR,
+           uintptr_t TIFR_ADDR, uintptr_t TIMSK_ADDR,
+           uint8_t TOV_BIT, uint8_t TOIE_BIT, uint8_t OCIEA_BIT,
+           void(*fn)() = nullptr>
+  struct TimerCoreI {
+    using IsTimer = std::true_type;
+
+    inline static void (*handler_)() = nullptr;
+    static void attach(void(*f)()) { handler_ = f; }
+    static void act() {
+      if constexpr (fn != nullptr) fn();
+      if (handler_) handler_();
+    }
+
+    template<typename O>
+    struct Part : O {
+      using Base = O;
+      using Base::Base;
+
+      static volatile uint8_t& tccra()   { return *reinterpret_cast<volatile uint8_t*>(TCCRA_ADDR); }
+      static volatile uint8_t& tccrb()   { return *reinterpret_cast<volatile uint8_t*>(TCCRB_ADDR); }
+      static volatile uint8_t& tcnt()    { return *reinterpret_cast<volatile uint8_t*>(TCNT_ADDR); }
+      static volatile uint8_t& ocra()    { return *reinterpret_cast<volatile uint8_t*>(OCRA_ADDR); }
+      static volatile uint8_t& ocrb()    { return *reinterpret_cast<volatile uint8_t*>(OCRB_ADDR); }
+      static volatile uint8_t& timskReg(){ return *reinterpret_cast<volatile uint8_t*>(TIMSK_ADDR); }
+
+      // Minimal facades matching only the fields SysClock<> actually reads —
+      // regs().cnt, tifr().tov, timsk().toie.
+      struct RegsFacade  { RegProxy8<TCNT_ADDR> cnt; };
+      struct TifrFacade  { BitProxy8<TIFR_ADDR,  TOV_BIT>  tov; };
+      struct TimskFacade { BitProxy8<TIMSK_ADDR, TOIE_BIT> toie; };
+      static RegsFacade  regs()  { return {}; }
+      static TifrFacade  tifr()  { return {}; }
+      static TimskFacade timsk() { return {}; }
+
+      static void attach(void(*f)()) { handler_ = f; }
+      static void act() {
+        if constexpr (fn != nullptr) fn();
+        if (handler_) handler_();
+        O::act();
+      }
+      static void on(uint16_t fr, uint8_t scale, uint8_t /*duty*/ = 50) {
+        tcnt() = 0;
+        ocra() = uint8_t(fr);
+        tccrb() = (tccrb() & ~uint8_t(0b111)) | scale;
+      }
+      static void off() {
+        tccrb() &= ~uint8_t(0b111);
+        tcnt() = 0;
+      }
+      static void intA()               { timskReg() |= uint8_t(1 << OCIEA_BIT); }
+      static void setClockSource(uint8_t n) { tccrb() = (tccrb() & ~uint8_t(0b111)) | (n & 0b111); }
+      static void setOutMode_A(uint8_t n)   { tccra() = (tccra() & ~uint8_t(0b11 << 6)) | uint8_t((n & 0b11) << 6); }
+      static void setOutMode_B(uint8_t n)   { tccra() = (tccra() & ~uint8_t(0b11 << 4)) | uint8_t((n & 0b11) << 4); }
+      static void setWaveMode(uint8_t n) {
+        tccra() = (tccra() & ~uint8_t(0b11)) | (n & 0b11);
+        tccrb() = (tccrb() & ~uint8_t(1 << 3)) | uint8_t(((n >> 2) & 1) << 3);
       }
     };
   };
@@ -311,6 +409,36 @@ namespace avr {
 
   } // mega1284
 
+  namespace tiny85 {
+    // ATtiny85/45 TC0 — 8-bit, CS1Policy. Registers are scattered, not
+    // contiguous like ATmega's TC0 block (interleaved with Timer1's
+    // registers) — hence TimerCoreI, not TimerCore.
+    //   TCCR0A=0x4A TCCR0B=0x53 TCNT0=0x52 OCR0A=0x49 OCR0B=0x48
+    //   TIFR=0x58 TIMSK=0x59 — shared with Timer1: TOV0/TOIE0=bit1, OCIE0A=bit4
+    //
+    // No TC1 here: ATtiny85/45's Timer1 is an unrelated 8-bit PLL timer
+    // (different register set, GTCCR-based PWM enable) that doesn't fit
+    // this model — use attiny.h's dedicated AvrTimer1_Tiny85 / OC1B instead.
+    template<void(*fn)() = nullptr>
+    using TC0 = hapi::APIOf<TimerAPI<>, Prescaler<CS1Policy>,
+                             TimerCoreI<0x4A,0x53,0x52,0x49,0x48, 0x58,0x59, 1,1,4, fn>>;
+  } // tiny85
+
+  namespace tiny45 {
+    // Register-identical to tiny85 (same die family)
+    template<void(*fn)() = nullptr> using TC0 = tiny85::TC0<fn>;
+  } // tiny45
+
+  namespace tiny13 {
+    // ATtiny13 TC0 — different SFR map from tiny85/45 (older/smaller
+    // chip); no Timer1 on this chip at all.
+    //   TCCR0A=0x4F TCCR0B=0x53 TCNT0=0x52 OCR0A=0x56 OCR0B=0x49
+    //   TIFR0=0x58 TIMSK0=0x59 — dedicated to TC0: TOV0/TOIE0=bit1, OCIE0A=bit2
+    template<void(*fn)() = nullptr>
+    using TC0 = hapi::APIOf<TimerAPI<>, Prescaler<CS1Policy>,
+                             TimerCoreI<0x4F,0x53,0x52,0x56,0x49, 0x58,0x59, 1,1,2, fn>>;
+  } // tiny13
+
 }} // hw::avr
 
 // ============================================================
@@ -326,6 +454,12 @@ namespace avr {
     namespace hw { namespace avr { namespace chip = mega2560; }}
   #elif defined(__AVR_ATmega1284__) || defined(__AVR_ATmega1284P__)
     namespace hw { namespace avr { namespace chip = mega1284; }}
+  #elif defined(__AVR_ATtiny85__)
+    namespace hw { namespace avr { namespace chip = tiny85; }}
+  #elif defined(__AVR_ATtiny45__)
+    namespace hw { namespace avr { namespace chip = tiny45; }}
+  #elif defined(__AVR_ATtiny13__)
+    namespace hw { namespace avr { namespace chip = tiny13; }}
   #else
     namespace hw { namespace avr { namespace chip = mega; }}
   #endif

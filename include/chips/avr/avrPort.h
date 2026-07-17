@@ -91,6 +91,19 @@ namespace avr {
     using PortD = mega::PortD;
   }
 
+  namespace tiny85 {
+    // ATtiny85/45/13 — single port (B): PIN=0x36, DDR=0x37, PORT=0x38
+    using PortB = AVRPort<0x36, 0x37, 0x38>;
+  }
+
+  namespace tiny45 {
+    using PortB = tiny85::PortB;  // register-identical (same die family)
+  }
+
+  namespace tiny13 {
+    using PortB = tiny85::PortB;  // same PortB addresses, smaller chip
+  }
+
 }} // hw::avr
 
 // ============================================================
@@ -106,6 +119,12 @@ namespace avr {
     namespace hw { namespace avr { namespace chip = mega2560; }}
   #elif defined(__AVR_ATmega1284__)
     namespace hw { namespace avr { namespace chip = mega1284; }}
+  #elif defined(__AVR_ATtiny85__)
+    namespace hw { namespace avr { namespace chip = tiny85; }}
+  #elif defined(__AVR_ATtiny45__)
+    namespace hw { namespace avr { namespace chip = tiny45; }}
+  #elif defined(__AVR_ATtiny13__)
+    namespace hw { namespace avr { namespace chip = tiny13; }}
   #else
     namespace hw { namespace avr { namespace chip = mega; }}
   #endif

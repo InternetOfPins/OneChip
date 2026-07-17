@@ -213,19 +213,22 @@ namespace avr {
   }
 
   namespace tiny85 {
-    // TC0 — 8-bit, CS1Policy
-    // Addresses differ from mega: TCCR0A=0x4A TIFR0=0x35 TIMSK0=0x6E
+    // TC0 — 8-bit, CS1Policy. Registers are scattered (not contiguous like
+    // ATmega's TC0 block, interleaved with Timer1's registers) — hence
+    // TimerCoreI, not TimerCore. See avrTC.h's tiny85::TC0 for the same
+    // addresses: TCCR0A=0x4A TCCR0B=0x53 TCNT0=0x52 OCR0A=0x49 OCR0B=0x48,
+    // TIFR=0x58 TIMSK=0x59 (shared with Timer1: TOV0/TOIE0=bit1, OCIE0A=bit4).
     // Default: millis-only (no OverflowCounter, saves 4 bytes RAM)
     template<uint32_t CpuHz = 8000000UL>
     using SysTick0 = hapi::APIOf<onePin::BootDef,
                                   SysClock<CS1Policy, 64, CpuHz>,
-                                  TimerCore<tc8_regs, 0x4A, 0x35, 0x6E>>;
+                                  TimerCoreI<0x4A,0x53,0x52,0x49,0x48, 0x58,0x59, 1,1,4>>;
     // Opt-in to full precision
     template<uint32_t CpuHz = 8000000UL>
     using SysTick0Full = hapi::APIOf<onePin::BootDef,
                                       SysClock<CS1Policy, 64, CpuHz>,
                                       OverflowCounter,
-                                      TimerCore<tc8_regs, 0x4A, 0x35, 0x6E>>;
+                                      TimerCoreI<0x4A,0x53,0x52,0x49,0x48, 0x58,0x59, 1,1,4>>;
   }
 
   namespace tiny45 {
@@ -239,18 +242,21 @@ namespace avr {
   }
 
   namespace tiny13 {
-    // Identical register layout to tiny85 (same Timer0 addresses)
+    // TC0 — 8-bit, CS1Policy. Different SFR map from tiny85/45 (older/
+    // smaller chip), and no Timer1: TCCR0A=0x4F TCCR0B=0x53 TCNT0=0x52
+    // OCR0A=0x56 OCR0B=0x49, TIFR0=0x58 TIMSK0=0x59 (dedicated to TC0:
+    // TOV0/TOIE0=bit1, OCIE0A=bit2).
     // Default: millis-only (saves 4 bytes RAM)
     template<uint32_t CpuHz = 9600000UL>
     using SysTick0 = hapi::APIOf<onePin::BootDef,
                                   SysClock<CS1Policy, 64, CpuHz>,
-                                  TimerCore<tc8_regs, 0x4A, 0x35, 0x6E>>;
+                                  TimerCoreI<0x4F,0x53,0x52,0x56,0x49, 0x58,0x59, 1,1,2>>;
     // Opt-in to full precision
     template<uint32_t CpuHz = 9600000UL>
     using SysTick0Full = hapi::APIOf<onePin::BootDef,
                                       SysClock<CS1Policy, 64, CpuHz>,
                                       OverflowCounter,
-                                      TimerCore<tc8_regs, 0x4A, 0x35, 0x6E>>;
+                                      TimerCoreI<0x4F,0x53,0x52,0x56,0x49, 0x58,0x59, 1,1,2>>;
   }
 
 }} // hw::avr

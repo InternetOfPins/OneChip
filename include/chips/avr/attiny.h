@@ -17,7 +17,7 @@ namespace hw::avr {
   // ATtiny85 register addresses (memory-mapped = I/O + 0x20):
   //   PINB=0x36  DDRB=0x37  PORTB=0x38
   //   TCCR0A=0x4A  OCR0A=0x49  OCR0B=0x48  TCCR0B=0x53
-  //   GTCCR=0x4C  OCR1B=0x4D  TCCR1=0x4F  OCR1C=0x4E
+  //   GTCCR=0x4C  OCR1B=0x4B  OCR1C=0x4D  OCR1A=0x4E  TCNT1=0x4F  TCCR1=0x50
   //
   // OC pin map:
   //   OC0A → PB0 (pin 5)     OC0B → PB1 (pin 6)
@@ -36,7 +36,7 @@ namespace hw::avr {
     // Timer1 — 8-bit with PLL clock option.
     // OC1B control lives in GTCCR (0x4C): PWM1B(6) COM1B1(5) COM1B0(4).
     // enable() must also set PWM1B; disable() must clear it.
-    struct OC1B : AvrOC<0x4D, 0x4C, 5, 0x38, 0x37, 4> {     // PB4
+    struct OC1B : AvrOC<0x4B, 0x4C, 5, 0x38, 0x37, 4> {     // PB4
       static void enable() {
         // COM1B=10 (non-inverting) + PWM1B=1
         auto& g = *reinterpret_cast<volatile uint8_t*>(0x4C);
@@ -80,13 +80,13 @@ namespace hw::avr {
   struct ATtiny85_Timer0Pwm256  : AvrTimer8FastPwm<0x4A,0x53, 0x04> {};  // PS=256 ~122  Hz
   struct ATtiny85_Timer0Pwm1024 : AvrTimer8FastPwm<0x4A,0x53, 0x05> {};  // PS=1024~30   Hz
 
-  // TC1 clock — sets CS1 in TCCR1 (0x4F) bits [3:0], no WGM change
+  // TC1 clock — sets CS1 in TCCR1 (0x50) bits [3:0], no WGM change
   // (PWM1B mode is activated by OC1B::enable() via GTCCR)
   template<uint8_t CS1>
   struct AvrTimer1_Tiny85 {
     template<typename O> struct Part : O {
       static void begin() {
-        auto& t = *reinterpret_cast<volatile uint8_t*>(0x4F);  // TCCR1
+        auto& t = *reinterpret_cast<volatile uint8_t*>(0x50);  // TCCR1
         t = (t & 0xF0) | (CS1 & 0x0F);
         O::begin();
       }
@@ -107,7 +107,7 @@ namespace hw::avr {
   // ATtiny45 register addresses (identical to ATtiny85):
   //   PINB=0x36  DDRB=0x37  PORTB=0x38
   //   TCCR0A=0x4A  OCR0A=0x49  OCR0B=0x48  TCCR0B=0x53
-  //   GTCCR=0x4C  OCR1B=0x4D  TCCR1=0x4F  OCR1C=0x4E
+  //   GTCCR=0x4C  OCR1B=0x4B  OCR1C=0x4D  OCR1A=0x4E  TCNT1=0x4F  TCCR1=0x50
   //
   // OC pin map:
   //   OC0A → PB0 (pin 5)     OC0B → PB1 (pin 6)
@@ -123,7 +123,7 @@ namespace hw::avr {
     struct OC0B : AvrOC<0x48, 0x4A, 5, 0x38, 0x37, 1> {};  // PB1
 
     // Timer1 — 8-bit with PLL clock option (same as ATtiny85)
-    struct OC1B : AvrOC<0x4D, 0x4C, 5, 0x38, 0x37, 4> {     // PB4
+    struct OC1B : AvrOC<0x4B, 0x4C, 5, 0x38, 0x37, 4> {     // PB4
       static void enable() {
         // COM1B=10 (non-inverting) + PWM1B=1
         auto& g = *reinterpret_cast<volatile uint8_t*>(0x4C);
@@ -165,7 +165,9 @@ namespace hw::avr {
   //
   // ATtiny13 register addresses (memory-mapped = I/O + 0x20):
   //   PINB=0x36  DDRB=0x37  PORTB=0x38
-  //   TCCR0A=0x4A  OCR0A=0x49  OCR0B=0x48  TCCR0B=0x53
+  //   TCCR0A=0x4F  OCR0A=0x56  OCR0B=0x49  TCCR0B=0x53
+  //   (older/smaller chip — different SFR map from ATtiny45/85; TCCR0B
+  //   coincides at 0x53 but TCCR0A/OCR0A/OCR0B do not)
   //
   // OC pin map:
   //   OC0A → PB0 (pin 5)     OC0B → PB1 (pin 6)
@@ -174,9 +176,9 @@ namespace hw::avr {
     // Port B: all 6 usable pins (PB0..PB5)
     struct PortB : AVRPort<0x36, 0x37, 0x38> {};
 
-    // Timer0 — 8-bit (same addresses as ATtiny45/85)
-    struct OC0A : AvrOC<0x49, 0x4A, 7, 0x38, 0x37, 0> {};  // PB0
-    struct OC0B : AvrOC<0x48, 0x4A, 5, 0x38, 0x37, 1> {};  // PB1
+    // Timer0 — 8-bit (different addresses from ATtiny45/85 — see above)
+    struct OC0A : AvrOC<0x56, 0x4F, 7, 0x38, 0x37, 0> {};  // PB0
+    struct OC0B : AvrOC<0x49, 0x4F, 5, 0x38, 0x37, 1> {};  // PB1
 
     // Flash / RAM / EEPROM
     static constexpr uint16_t flashSize  = 1024;
@@ -199,6 +201,12 @@ namespace hw::avr {
     template<typename... CC> using Board = hapi::APIOf<BoardDef, CC...>;
   };
 
-  // ATtiny13 timer init components — reuse ATtiny85_Timer0Pwm* (same register addresses)
+  // ── ATtiny13 timer0 init Board<> components ──────────────────────────────
+  // TCCR0A differs from ATtiny45/85 (0x4F vs 0x4A); TCCR0B coincides (0x53).
+  struct ATtiny13_Timer0Pwm1    : AvrTimer8FastPwm<0x4F,0x53, 0x01> {};  // PS=1
+  struct ATtiny13_Timer0Pwm8    : AvrTimer8FastPwm<0x4F,0x53, 0x02> {};  // PS=8
+  struct ATtiny13_Timer0Pwm64   : AvrTimer8FastPwm<0x4F,0x53, 0x03> {};  // PS=64
+  struct ATtiny13_Timer0Pwm256  : AvrTimer8FastPwm<0x4F,0x53, 0x04> {};  // PS=256
+  struct ATtiny13_Timer0Pwm1024 : AvrTimer8FastPwm<0x4F,0x53, 0x05> {};  // PS=1024
 
 } // hw::avr
