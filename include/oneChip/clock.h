@@ -34,9 +34,24 @@
 
 #elif defined(ARDUINO)
   // uint32_t resolves to unsigned long on AVR and unsigned int on 32-bit targets,
-  // matching each Arduino platform's actual millis()/delay() declaration.
+  // matching each Arduino platform's actual millis()/delay() declaration — true
+  // on AVR (uint32_t IS unsigned long) and ESP32 (esp32-hal.h itself declares
+  // delay(uint32_t), an identical redeclaration). ESP8266's own core
+  // (core_esp8266_features.h) instead declares delay(unsigned long) — a
+  // DIFFERENT C++ type from uint32_t==unsigned int on that Xtensa toolchain,
+  // even though both are 32-bit. extern "C" only suppresses name-mangling; it
+  // doesn't merge differently-typed declarations into one overload, so
+  // redeclaring delay(uint32_t) here created a second, genuinely distinct
+  // overload alongside the framework's — delay(300) then became ambiguous
+  // (int equally convertible to either). Skip the redeclaration on ESP8266:
+  // <Arduino.h> is always already included by the time this header is
+  // reached in real Arduino code, so the framework's own delay(unsigned long)
+  // is already visible; ::delay(ms) below resolves to it directly (uint32_t
+  // -> unsigned long, a safe implicit widening, no ambiguity).
   extern "C" unsigned long millis();
+  #ifndef ESP8266
   extern "C" void delay(uint32_t);
+  #endif
   namespace hw {
     inline uint32_t millis()        { return (uint32_t)::millis(); }
     inline void     delay_ms(uint32_t ms) { ::delay(ms); }
