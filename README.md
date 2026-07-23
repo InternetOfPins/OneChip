@@ -1,6 +1,4 @@
-# OneChip
-
-<img src="logo.png" alt="OneChip logo" width="64" height="64">
+# <img src="logo.png" alt="OneChip logo" width="32" height="32"> OneChip
 
 **HAPI Compatibility:** Works with new Check/Apply/ApplyPack API (2026-Q2)
 
