@@ -1,5 +1,7 @@
 # OneChip
 
+<img src="logo.png" alt="OneChip logo" width="64" height="64">
+
 **HAPI Compatibility:** Works with new Check/Apply/ApplyPack API (2026-Q2)
 
 Hardware register components for HAPI chains. Provides AVR and STM32 GPIO, timers, interrupts, and chip descriptors. No Arduino or ST HAL dependency — register addresses from datasheets directly.
