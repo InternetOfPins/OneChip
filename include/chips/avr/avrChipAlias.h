@@ -41,6 +41,6 @@ namespace hw { namespace avr {
   namespace hw { namespace avr { namespace chip = tiny45; }}
 #elif defined(__AVR_ATtiny13__)
   namespace hw { namespace avr { namespace chip = tiny13; }}
-#else
+#elif defined(__AVR__)
   namespace hw { namespace avr { namespace chip = mega; }}
 #endif

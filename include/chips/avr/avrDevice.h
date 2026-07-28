@@ -109,7 +109,7 @@ namespace chip {
     template<uint32_t CpuHz = 9600000UL> using SysTick0 = hw::avr::tiny13::SysTick0<CpuHz>;
     template<uint32_t CpuHz = 9600000UL> using SysTick0Full = hw::avr::tiny13::SysTick0Full<CpuHz>;
   }
-#else
+#elif defined(__AVR__)
   namespace chip {
     template<uint32_t CpuHz = 16000000UL> using SysTick0     = hw::avr::mega::SysTick0<CpuHz>;
     template<uint32_t CpuHz = 16000000UL> using SysTick2     = hw::avr::mega::SysTick2<CpuHz>;
