@@ -74,46 +74,37 @@ namespace hw::avr {
     template<uint8_t Pin0, uint8_t Pin1 = 0xFF, uint8_t Pin2 = 0xFF>
     using OnFall = PcIntC<Pin0, Pin1, Pin2>;
   }
+
+  // Platform-agnostic alias: chip::OnChange<> (etc.) resolves to the AVR
+  // implementation above via the REAL hw::avr::chip namespace alias
+  // (avrChipAlias.h — chip = mega/mega2560/mega1284/tiny.../..., the single
+  // source of truth for chip-family resolution). Must land inside these
+  // concrete per-family namespaces, not a separately-declared `namespace
+  // chip { ... }` here: that used to open a SECOND, independent namespace
+  // at GLOBAL scope (this whole file sits outside hw::avr from here on,
+  // historically) sharing the bare name "chip" with the real
+  // hw::avr::chip alias — two distinct entities, same simple name,
+  // different scopes. Any unqualified chip::X lookup (chip::PortB,
+  // chip::SysTick0, ...) anywhere in a TU that also does `using namespace
+  // hw::avr;` became genuinely ambiguous between the two — found on real
+  // hardware (Arduino Uno) as "reference to 'chip' is ambiguous" on a
+  // completely unrelated chip::PortB use in avrPort.h. Reopening the real
+  // per-family namespaces directly (same style avrSysClock.h already uses
+  // for SysTick0's own mega2560/mega1284 forwarding, just below) means
+  // chip::OnChange resolves through the one real alias, with no second
+  // namespace to collide with.
+  namespace mega       { using namespace interrupt_sources; }
+  namespace mega2560   { using namespace interrupt_sources; }
+  namespace mega1284   { using namespace interrupt_sources; }
 #endif
 
 } // hw::avr
 
-// Platform-agnostic alias: chip::OnChange<> resolves to AVR implementation
-// and chip::SysTick0<> resolves per chip family
-#if !defined(__AVR_ATtiny13__) && !defined(__AVR_ATtiny45__) && !defined(__AVR_ATtiny85__)
-namespace chip {
-  template<uint8_t Pin0, uint8_t Pin1 = 0xFF, uint8_t Pin2 = 0xFF>
-  using OnChange = hw::avr::interrupt_sources::OnChange<Pin0, Pin1, Pin2>;
-
-  template<uint8_t Pin0, uint8_t Pin1 = 0xFF, uint8_t Pin2 = 0xFF>
-  using OnRise = hw::avr::interrupt_sources::OnRise<Pin0, Pin1, Pin2>;
-
-  template<uint8_t Pin0, uint8_t Pin1 = 0xFF, uint8_t Pin2 = 0xFF>
-  using OnFall = hw::avr::interrupt_sources::OnFall<Pin0, Pin1, Pin2>;
-}
-#endif
-
-// Chip-family namespace resolution for SysTick0
-#ifdef __AVR_ATtiny85__
-  namespace chip {
-    template<uint32_t CpuHz = 8000000UL> using SysTick0 = hw::avr::tiny85::SysTick0<CpuHz>;
-    template<uint32_t CpuHz = 8000000UL> using SysTick0Full = hw::avr::tiny85::SysTick0Full<CpuHz>;
-  }
-#elif defined(__AVR_ATtiny45__)
-  namespace chip {
-    template<uint32_t CpuHz = 8000000UL> using SysTick0 = hw::avr::tiny45::SysTick0<CpuHz>;
-    template<uint32_t CpuHz = 8000000UL> using SysTick0Full = hw::avr::tiny45::SysTick0Full<CpuHz>;
-  }
-#elif defined(__AVR_ATtiny13__)
-  namespace chip {
-    template<uint32_t CpuHz = 9600000UL> using SysTick0 = hw::avr::tiny13::SysTick0<CpuHz>;
-    template<uint32_t CpuHz = 9600000UL> using SysTick0Full = hw::avr::tiny13::SysTick0Full<CpuHz>;
-  }
-#elif defined(__AVR__)
-  namespace chip {
-    template<uint32_t CpuHz = 16000000UL> using SysTick0     = hw::avr::mega::SysTick0<CpuHz>;
-    template<uint32_t CpuHz = 16000000UL> using SysTick2     = hw::avr::mega::SysTick2<CpuHz>;
-    template<uint32_t CpuHz = 16000000UL> using SysTick0Full = hw::avr::mega::SysTick0Full<CpuHz>;
-    template<uint32_t CpuHz = 16000000UL> using SysTick2Full = hw::avr::mega::SysTick2Full<CpuHz>;
-  }
-#endif
+// chip::SysTick0<>/SysTick2<> need no forwarding here at all — they already
+// resolve through the real hw::avr::chip alias (avrChipAlias.h), since
+// every per-family namespace (mega/mega2560/mega1284/tiny85/tiny45/tiny13)
+// already defines its own SysTick0/SysTick2 directly (avrSysClock.h). A
+// duplicate #if cascade re-deriving "which family" here, to forward into a
+// second, separately-declared `namespace chip { ... }`, used to sit at this
+// exact spot — dead code (the alias already did this job), and the actual
+// source of the chip::X ambiguity described above.
