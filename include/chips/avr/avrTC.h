@@ -105,8 +105,7 @@ namespace avr {
   // Timer API — terminal/fallback, not a component, no Part<>
   // ============================================================
 
-  /// @brief Timer API terminal.
-  /// Fallback implementations — silently do nothing if no layer above overrides.
+  /// @brief Timer API terminal; fallback implementations do nothing unless overridden.
   /// Cfg carries platform config (e.g. F_CPU override) accessible via TimerAPI::Config.
   template<typename Cfg = hapi::Nil>
   struct TimerAPI {
@@ -127,12 +126,8 @@ namespace avr {
   // TimerCore — HAPI component, hardware register access
   // ============================================================
 
-  /// @brief Hardware register access layer.
-  /// Maps compile-time address constants to register operations.
-  /// @tparam Regs    register layout struct (tc8_regs or tc16_regs)
-  /// @tparam BASE    base address of the timer register block
-  /// @tparam TIFR_ADDR  address of the TIFR register
-  /// @tparam TIMSK_ADDR address of the TIMSK register
+  /// @brief hardware register access layer; maps compile-time address constants
+  /// to register operations.
   template<typename Regs, uintptr_t BASE, uint8_t TIFR_ADDR, uint8_t TIMSK_ADDR,
            void(*fn)() = nullptr>
   struct TimerCore {
@@ -208,20 +203,8 @@ namespace avr {
     }
   };
 
-  /// @brief Individually-addressed 8-bit timer core.
-  /// TimerCore (above) maps a single contiguous Regs struct onto one BASE
-  /// address — that only works when a chip's TCCRA/TCCRB/TCNT/OCRA/OCRB
-  /// registers sit at consecutive addresses in that exact order, as they
-  /// do on ATmega. ATtiny TC0 registers are scattered, interleaved with
-  /// other peripherals' registers (e.g. ATtiny85/45's Timer1), so each
-  /// register needs its own address — hence separate NTTPs here instead
-  /// of one BASE.
-  /// WGM/COM/CS bit positions within TCCRA/TCCRB are the standard AVR
-  /// 8-bit-timer layout (portable across chips); only the addresses and
-  /// the TOV/TOIE/OCIEA bit positions vary per chip (ATtiny85/45 share
-  /// one TIFR/TIMSK with Timer1; ATtiny13 has dedicated TIFR0/TIMSK0).
-  /// Same Part<O> surface as TimerCore, so Prescaler<>/SysClock<> compose
-  /// unchanged.
+  /// @brief individually-addressed 8-bit timer core, for chips with non-contiguous
+  /// timer registers; same Part<O> surface as TimerCore.
   template<uintptr_t TCCRA_ADDR, uintptr_t TCCRB_ADDR, uintptr_t TCNT_ADDR,
            uintptr_t OCRA_ADDR, uintptr_t OCRB_ADDR,
            uintptr_t TIFR_ADDR, uintptr_t TIMSK_ADDR,
@@ -354,10 +337,8 @@ namespace avr {
       using Base = O;
       using Base::Base;
 
-      /// @brief Set frequency and duty cycle, returns actual achieved frequency.
-      /// @param f     target frequency in Hz
-      /// @param duty  duty cycle 0..DUTTY_MAX (default 50)
-      /// @return actual frequency achieved, 0 if not achievable
+      /// @brief sets frequency (Hz) and duty cycle (0..DUTTY_MAX); returns the actual
+      /// achieved frequency, or 0 if not achievable.
       static float play(float f, int duty = DEFAULT_DUTTY) {
         f *= 2;
         int p = CSPolicy::bestPrescale((unsigned long)f);
