@@ -20,7 +20,7 @@
   "license": "MIT",
   "homepage": "https://github.com/InternetOfPins/OneChip",
   "dependencies": {
-    "HAPI":   "https://github.com/InternetOfPins/HAPI.git@^0.5.0",
+    "HAPI":   "https://github.com/InternetOfPins/HAPI.git@>=0.5.0",
     "OneBit": "https://github.com/InternetOfPins/OneBit.git@^0.1.0",
     "OnePin": "https://github.com/InternetOfPins/OnePin.git@^0.1.0"
   },
