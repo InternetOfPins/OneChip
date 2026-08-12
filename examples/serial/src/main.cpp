@@ -22,8 +22,13 @@ using namespace oneBit;
 
 // ── STM32 (Blue Pill — 72 MHz via CMSIS SystemInit PLL) ─────────────────────
 #elif defined(__arm__)
-  using SysTick = chip::SysClk<>;                  // 72 MHz default (f1)
-  using Ser     = chip::Serial0<9600>;              // USART1 — PA9 TX / PA10 RX
+  // Fully-qualified: bare chip:: is ambiguous here between the global
+  // ::chip namespace (platform-agnostic interrupt-source aliases, see
+  // stm32Device.h) and hw::stm32::chip (the family alias to f1, brought
+  // into scope by "using namespace hw::stm32;" above) -- same class of
+  // collision as the documented hw::avr::chip:: ambiguity.
+  using SysTick = hw::stm32::chip::SysClk<>;                  // 72 MHz default (f1)
+  using Ser     = hw::stm32::chip::Serial0<9600>;              // USART1 — PA9 TX / PA10 RX
   using Board   = STM32::Board<Boot<SysTick>>;
   #ifdef IOP
   IOP_SYSTICK_ISR(Board)

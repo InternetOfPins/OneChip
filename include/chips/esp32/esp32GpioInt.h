@@ -49,7 +49,10 @@ namespace hw::esp32 {
 #endif
     }
 
-    template<typename EdgeMode>
+    // Not templated on EdgeMode: neither begin<EdgeMode>()'s nor changed()'s
+    // call sites supply one (changed() isn't templated on EdgeMode at all),
+    // and the body below doesn't use it either -- this must stay callable
+    // as plain read(), matching this file's own usage doc comment above.
     static uint8_t read() {
       uint8_t state = 0;
 #ifdef ESP32
