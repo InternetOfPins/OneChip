@@ -3,18 +3,15 @@
 // ============================================================
 // hw::avr::chip:: — single source of truth for chip-family resolution.
 //
-// avrPort.h, avrTC.h and avrPcInt.h each used to carry their own
-// independent copy of this #if chain, guarded by a shared
-// HW_AVR_CHIP_ALIAS_DEFINED macro so only one copy would actually run
-// per translation unit — whichever of those three files happened to be
-// included first. When one copy fell out of sync with the others (a
-// missing ATtiny branch, or a branch aliasing to a namespace that didn't
-// exist), the result wasn't a compiler error: the mismatched branch was
-// simply never reached, and the TU silently got whichever *other* file's
-// (wrong) answer instead. Undefined chip resolution must fail to compile,
-// not silently resolve to a different chip's addresses — hence one file,
-// included by all three, so there is exactly one #if chain to keep in
-// sync and no possibility of a second copy masking a gap in the first.
+// avrPort.h, avrTC.h and avrPcInt.h all include this single file rather
+// than each carrying its own independent copy of this #if chain: a
+// second, independently-maintained copy could fall out of sync (e.g. a
+// missing ATtiny branch) without causing a compiler error — the
+// mismatched branch would simply go unreached, and the TU would
+// silently resolve through whichever other copy's #if chain ran first.
+// Undefined chip resolution must fail to compile, not silently resolve
+// to a different chip's addresses — hence one file, included by all
+// three, so there is exactly one #if chain to keep in sync.
 //
 // Add a new chip family here once; every consumer (avrPort.h's PortB,
 // avrTC.h's TC0/TC1/.., avrPcInt.h's PcInt0/1/2) sees it immediately.

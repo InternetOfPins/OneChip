@@ -170,14 +170,11 @@ namespace hw::stm32 {
       // No default spi_init() call here -- every real alias below
       // (f0::Spi/f1::Spi/f4::Spi) wraps this in oneBus::SpiMaster<Speed>,
       // whose own begin() already calls Base::spi_init(Speed) before
-      // delegating to Base::begin() (see oneBus/spi.h). This used to
-      // also call spi_init(1000000u) unconditionally here, silently
-      // overwriting whatever Speed the caller actually configured with
-      // a hardcoded 1MHz every time -- found via real hardware register
-      // readback (SPI1.CR1's BR field reading back wrong), not by
-      // inspection. If Stm32SpiCore is ever composed without
-      // SpiMaster<> above it, the caller must call spi_init(speed)
-      // explicitly before begin().
+      // delegating to Base::begin() (see oneBus/spi.h). Calling
+      // spi_init() unconditionally here would silently overwrite
+      // whatever Speed the caller configured. If Stm32SpiCore is ever
+      // composed without SpiMaster<> above it, the caller must call
+      // spi_init(speed) explicitly before begin().
       static void begin() {
         Base::begin();
       }

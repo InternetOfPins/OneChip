@@ -80,19 +80,16 @@ namespace hw::avr {
   // (avrChipAlias.h — chip = mega/mega2560/mega1284/tiny.../..., the single
   // source of truth for chip-family resolution). Must land inside these
   // concrete per-family namespaces, not a separately-declared `namespace
-  // chip { ... }` here: that used to open a SECOND, independent namespace
-  // at GLOBAL scope (this whole file sits outside hw::avr from here on,
-  // historically) sharing the bare name "chip" with the real
-  // hw::avr::chip alias — two distinct entities, same simple name,
-  // different scopes. Any unqualified chip::X lookup (chip::PortB,
-  // chip::SysTick0, ...) anywhere in a TU that also does `using namespace
-  // hw::avr;` became genuinely ambiguous between the two — found on real
-  // hardware (Arduino Uno) as "reference to 'chip' is ambiguous" on a
-  // completely unrelated chip::PortB use in avrPort.h. Reopening the real
-  // per-family namespaces directly (same style avrSysClock.h already uses
-  // for SysTick0's own mega2560/mega1284 forwarding, just below) means
-  // chip::OnChange resolves through the one real alias, with no second
-  // namespace to collide with.
+  // chip { ... }` here: a separate `namespace chip { ... }` at global
+  // scope would share the bare name "chip" with the real hw::avr::chip
+  // alias — two distinct entities, same simple name, different scopes —
+  // making any unqualified chip::X lookup (chip::PortB, chip::SysTick0,
+  // ...) genuinely ambiguous in a TU that also does `using namespace
+  // hw::avr;`. Reopening the real per-family namespaces directly (same
+  // style avrSysClock.h already uses for SysTick0's own mega2560/
+  // mega1284 forwarding, just below) means chip::OnChange resolves
+  // through the one real alias, with no second namespace to collide
+  // with.
   namespace mega       { using namespace interrupt_sources; }
   namespace mega2560   { using namespace interrupt_sources; }
   namespace mega1284   { using namespace interrupt_sources; }
@@ -104,7 +101,7 @@ namespace hw::avr {
 // resolve through the real hw::avr::chip alias (avrChipAlias.h), since
 // every per-family namespace (mega/mega2560/mega1284/tiny85/tiny45/tiny13)
 // already defines its own SysTick0/SysTick2 directly (avrSysClock.h). A
-// duplicate #if cascade re-deriving "which family" here, to forward into a
-// second, separately-declared `namespace chip { ... }`, used to sit at this
-// exact spot — dead code (the alias already did this job), and the actual
-// source of the chip::X ambiguity described above.
+// duplicate #if cascade re-deriving "which family" here, forwarding into a
+// second, separately-declared `namespace chip { ... }`, would be dead code
+// (the alias already does this job) and would reintroduce the chip::X
+// ambiguity described above.
