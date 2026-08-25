@@ -53,7 +53,7 @@ namespace hw::esp32 {
     // call sites supply one (changed() isn't templated on EdgeMode at all),
     // and the body below doesn't use it either -- this must stay callable
     // as plain read(), matching this file's own usage doc comment above.
-    static uint8_t read() {
+    [[nodiscard]] static uint8_t read() {
       uint8_t state = 0;
 #ifdef ESP32
       if (GPIO0 >= 0) state |= (gpio_get_level((gpio_num_t)GPIO0) << 0);
@@ -64,7 +64,7 @@ namespace hw::esp32 {
     }
 
     template<typename EdgeMode>
-    static bool changed() {
+    [[nodiscard]] static bool changed() {
       uint8_t now = read();
       uint8_t mask = ((GPIO0 >= 0) ? 0x01 : 0) |
                      ((GPIO1 >= 0) ? 0x02 : 0) |

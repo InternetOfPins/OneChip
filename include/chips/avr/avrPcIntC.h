@@ -45,11 +45,11 @@ namespace hw::avr {
       sei();
     }
 
-    static uint8_t read() {
+    [[nodiscard]] static uint8_t read() {
       return (PINC & mask);
     }
 
-    static bool changed() {
+    [[nodiscard]] static bool changed() {
       uint8_t now = read();
       uint8_t diff = now ^ _last;
       return (diff & mask) != 0;

@@ -146,14 +146,14 @@ namespace hw::stm32 {
         return *reinterpret_cast<stm32_usart_regs*>(BASE);
       }
 
-      static bool available() { return regs().sr & (1u << 5); }  // RXNE
+      [[nodiscard]] static bool available() { return regs().sr & (1u << 5); }  // RXNE
 
       static void putch(uint8_t c) {
         while (!(regs().sr & (1u << 7)));  // wait TXE
         regs().dr = c;
       }
 
-      static uint8_t getch() {
+      [[nodiscard]] static uint8_t getch() {
         while (!(regs().sr & (1u << 5)));  // wait RXNE
         return regs().dr;
       }
@@ -207,14 +207,14 @@ namespace hw::stm32 {
         return *reinterpret_cast<stm32_usart_v2_regs*>(BASE);
       }
 
-      static bool available() { return regs().isr & (1u << 5); }  // RXNE
+      [[nodiscard]] static bool available() { return regs().isr & (1u << 5); }  // RXNE
 
       static void putch(uint8_t c) {
         while (!(regs().isr & (1u << 7)));  // wait TXE
         regs().tdr = c;
       }
 
-      static uint8_t getch() {
+      [[nodiscard]] static uint8_t getch() {
         while (!(regs().isr & (1u << 5)));  // wait RXNE
         return uint8_t(regs().rdr);
       }

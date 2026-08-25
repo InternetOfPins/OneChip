@@ -24,7 +24,7 @@ namespace hw::esp32 {
       SPI.setFrequency(8000000UL);
       SPI.setDataMode(SPI_MODE0);
     }
-    static uint8_t transfer(uint8_t b) { return SPI.transfer(b); }
+    [[nodiscard]] static uint8_t transfer(uint8_t b) { return SPI.transfer(b); }
     static void transfer(const uint8_t* buf, uint16_t len) {
       while (len--) SPI.transfer(*buf++);
     }
@@ -38,7 +38,7 @@ namespace hw::esp32 {
   template<int MOSI = 23, int MISO = 19, int SCK = 18>
   struct Esp32SpiMaster {
     static void begin()                               {}
-    static uint8_t transfer(uint8_t)                  { return 0; }
+    [[nodiscard]] static uint8_t transfer(uint8_t)                  { return 0; }
     static void transfer(const uint8_t*, uint16_t)    {}
     static void fill(uint8_t, uint16_t)               {}
   };

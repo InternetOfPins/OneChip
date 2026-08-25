@@ -45,14 +45,14 @@ namespace hw::avr {
         return *reinterpret_cast<avr_usart_regs*>(BASE);
       }
 
-      static bool available() { return regs().ucsra & (1u << 7); }  // RXCn
+      [[nodiscard]] static bool available() { return regs().ucsra & (1u << 7); }  // RXCn
 
       static void putch(uint8_t c) {
         while (!(regs().ucsra & (1u << 5)));  // wait UDREn
         regs().udr = c;
       }
 
-      static uint8_t getch() {
+      [[nodiscard]] static uint8_t getch() {
         while (!(regs().ucsra & (1u << 7)));  // wait RXCn
         return regs().udr;
       }

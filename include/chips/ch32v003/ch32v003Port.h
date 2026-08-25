@@ -55,11 +55,11 @@ namespace ch32v003 {
       static void begin() { enableClock(); Base::begin(); }
       static void enableClock() { reg(RCC_APB2PCENR) |= RccEnableBit; }
 
-      static Unit pin()        { return (Unit)reg(base + 0x08); }              // INDR
-      static Unit port()       { return (Unit)reg(base + 0x0C); }              // OUTDR
+      [[nodiscard]] static Unit pin()        { return (Unit)reg(base + 0x08); }              // INDR
+      [[nodiscard]] static Unit port()       { return (Unit)reg(base + 0x0C); }              // OUTDR
       static void port(Unit v) { reg(base + 0x0C) = v; }                       // OUTDR whole write
 
-      static Unit ddr() { return 0; }  // no single-register direction readback (4 bits/pin); unused by Mask<>
+      [[nodiscard]] static Unit ddr() { return 0; }  // no single-register direction readback (4 bits/pin); unused by Mask<>
 
       static void dir_out(Unit m) { setCfg(m, 0x1); }  // output, push-pull, 10MHz
       static void dir_in(Unit m)  { setCfg(m, 0x4); }  // input, floating

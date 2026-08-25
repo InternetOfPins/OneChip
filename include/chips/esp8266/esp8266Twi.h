@@ -50,14 +50,14 @@ namespace hw::esp8266 {
     // ── Read streaming ─────────────────────────────────────────────────
     // Wire.requestFrom() sends START+SLA+R, clocks n bytes, sends STOP.
     // Subsequent read_byte() calls drain the Wire receive buffer.
-    static uint8_t request_from(uint8_t addr, uint8_t n) {
+    [[nodiscard]] static uint8_t request_from(uint8_t addr, uint8_t n) {
       return Wire.requestFrom(static_cast<uint8_t>(addr),
                               static_cast<uint8_t>(n));
     }
 
-    static uint8_t read_byte() { return Wire.read(); }
+    [[nodiscard]] static uint8_t read_byte() { return Wire.read(); }
 
-    static bool available() { return Wire.available() > 0; }
+    [[nodiscard]] static bool available() { return Wire.available() > 0; }
   };
 
   namespace esp8266 {

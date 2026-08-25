@@ -112,15 +112,15 @@ namespace hw::esp32 {
         _table[id]->setValue(const_cast<uint8_t*>(data), len);
         if (Esp32BleServerCb::connected) _table[id]->notify();
       }
-      static uint8_t char_read(uint16_t id, uint8_t* data, uint8_t maxLen) {
+      [[nodiscard]] static uint8_t char_read(uint16_t id, uint8_t* data, uint8_t maxLen) {
         std::string v = _table[id]->getValue();
         uint8_t n = v.size() < maxLen ? (uint8_t)v.size() : maxLen;
         memcpy(data, v.data(), n);
         _written[id] = false;
         return n;
       }
-      static bool char_written(uint16_t id) { return _written[id]; }
-      static bool connected()               { return Esp32BleServerCb::connected; }
+      [[nodiscard]] static bool char_written(uint16_t id) { return _written[id]; }
+      [[nodiscard]] static bool connected()               { return Esp32BleServerCb::connected; }
     };
   };
 

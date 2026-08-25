@@ -117,13 +117,13 @@ namespace hw::nrf52 {
         _table[id]->write(data, len);
         if (Bluefruit.Periph.connected()) _table[id]->notify(data, len);
       }
-      static uint8_t char_read(uint16_t id, uint8_t* data, uint8_t maxLen) {
+      [[nodiscard]] static uint8_t char_read(uint16_t id, uint8_t* data, uint8_t maxLen) {
         uint16_t n = _table[id]->read(data, maxLen);
         _written[id] = false;
         return (uint8_t)n;
       }
-      static bool char_written(uint16_t id) { return _written[id]; }
-      static bool connected()               { return Bluefruit.Periph.connected() > 0; }
+      [[nodiscard]] static bool char_written(uint16_t id) { return _written[id]; }
+      [[nodiscard]] static bool connected()               { return Bluefruit.Periph.connected() > 0; }
     };
   };
 

@@ -160,7 +160,7 @@ namespace hw::stm32 {
         regs().cr1 |= (1u << 6);  // SPE — enable
       }
 
-      static uint8_t spi_transfer(uint8_t b) {
+      [[nodiscard]] static uint8_t spi_transfer(uint8_t b) {
         while (!(regs().sr & (1u << 1)));   // wait TXE
         regs().dr = b;
         while (!(regs().sr & (1u << 0)));   // wait RXNE

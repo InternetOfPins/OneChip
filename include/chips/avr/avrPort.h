@@ -49,10 +49,10 @@ namespace avr {
       static volatile Unit& ddr_reg()  { return *reinterpret_cast<volatile Unit*>(pDdr); }
       static volatile Unit& port_reg() { return *reinterpret_cast<volatile Unit*>(pOut); }
 
-      static Unit pin()        { return pin_reg(); }   // input state (PIN register)
-      static Unit port()       { return port_reg(); }  // output latch (PORT register)
+      [[nodiscard]] static Unit pin()        { return pin_reg(); }   // input state (PIN register)
+      [[nodiscard]] static Unit port()       { return port_reg(); }  // output latch (PORT register)
       static void port(Unit v) { port_reg() = v; }     // whole-port write
-      static Unit ddr()           { return ddr_reg(); }  // direction latch read
+      [[nodiscard]] static Unit ddr()           { return ddr_reg(); }  // direction latch read
       static void dir_out(Unit m) { ddr_reg() |=  m; }  // set pins as output (atomic SBI)
       static void dir_in(Unit m)  { ddr_reg() &= ~m; }  // set pins as input  (atomic CBI)
       static void dir(Unit m)     { ddr_reg()  =  m; }  // whole-port direction write

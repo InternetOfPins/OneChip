@@ -47,8 +47,8 @@ namespace hw::native {
     static void    begin_write(uint8_t addr)             { _addr = addr; _len = 0; }
     static void    write_byte(uint8_t b)                 { _buf[_len++] = b; }
     static void    end_write()                           {}
-    static uint8_t request_from(uint8_t, uint8_t n)     { _rxPos = 0; return n; }
-    static uint8_t read_byte() {
+    [[nodiscard]] static uint8_t request_from(uint8_t, uint8_t n)     { _rxPos = 0; return n; }
+    [[nodiscard]] static uint8_t read_byte() {
       return _rxPos < _rxLen ? _rxBuf[_rxPos++] : uint8_t(0);
     }
   };
@@ -94,14 +94,14 @@ namespace hw::native {
       _bufLen = 0;
     }
 
-    static uint8_t request_from(uint8_t addr, uint8_t n) {
+    [[nodiscard]] static uint8_t request_from(uint8_t addr, uint8_t n) {
       ioctl(_fd, I2C_SLAVE, static_cast<long>(addr));
       int got = ::read(_fd, _rxBuf, n);
       _rxPos = 0;
       return static_cast<uint8_t>(got > 0 ? got : 0);
     }
 
-    static uint8_t read_byte() {
+    [[nodiscard]] static uint8_t read_byte() {
       return _rxBuf[_rxPos++];
     }
   };

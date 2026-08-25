@@ -98,8 +98,8 @@ namespace stm32 {
       }
 
       // ---- standard pin API ----
-      static Unit pin()        { return Unit(regs().idr); }   // input state
-      static Unit port()       { return Unit(regs().odr); }   // output latch
+      [[nodiscard]] static Unit pin()        { return Unit(regs().idr); }   // input state
+      [[nodiscard]] static Unit port()       { return Unit(regs().odr); }   // output latch
       static void port(Unit v) { regs().odr = v; }            // whole-port write
 
       // ---- atomic set/clear via BSRR (used by Mask<>::on()/off()) ----
@@ -117,7 +117,7 @@ namespace stm32 {
       }
 
       // ---- virtual 1-bit DDR from MODER (informational) ----
-      static Unit ddr() {
+      [[nodiscard]] static Unit ddr() {
         Unit result = 0;
         uint32_t m = regs().moder;
         for (int i = 0; i < 16; i++)

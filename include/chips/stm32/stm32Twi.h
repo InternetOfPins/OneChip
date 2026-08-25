@@ -208,6 +208,12 @@ namespace hw::stm32 {
         end_write();
       }
 
+      // Single-byte convenience overload -- oneBus::I2cGpio (PCF8574-style
+      // GPIO expanders) calls TwiMaster::send(addr, byte) directly, per its
+      // own documented interface contract (see oneBus/i2cGpio.h's header
+      // comment), not the buffer form above.
+      static void send(uint8_t addr, uint8_t byte) { send(addr, &byte, 1); }
+
       // ── Read streaming ───────────────────────────────────────────────
       // STM32 ACK/STOP timing rules:
       //   n==1: clear ACK before clearing ADDR, then set STOP before reading DR
@@ -216,7 +222,7 @@ namespace hw::stm32 {
       // We implement a robust approach for n>=1 using an internal state tracker.
       inline static uint8_t _rcount = 0;
 
-      static uint8_t request_from(uint8_t addr, uint8_t n) {
+      [[nodiscard]] static uint8_t request_from(uint8_t addr, uint8_t n) {
         _rcount = n;
         regs().cr1 |= (1u << 10) | (1u << 8);       // ACK=1, START
         while (!(regs().sr1 & (1u << 0)));            // wait SB
@@ -232,7 +238,7 @@ namespace hw::stm32 {
         return n;
       }
 
-      static uint8_t read_byte() {
+      [[nodiscard]] static uint8_t read_byte() {
         if (_rcount == 1u) {
           // STOP already set in request_from (n==1) or by previous read_byte (n>1 last)
           while (!(regs().sr1 & (1u << 6)));          // wait RxNE
@@ -390,17 +396,23 @@ namespace hw::stm32 {
         end_write();
       }
 
+      // Single-byte convenience overload -- oneBus::I2cGpio (PCF8574-style
+      // GPIO expanders) calls TwiMaster::send(addr, byte) directly, per its
+      // own documented interface contract (see oneBus/i2cGpio.h's header
+      // comment), not the buffer form above.
+      static void send(uint8_t addr, uint8_t byte) { send(addr, &byte, 1); }
+
       // ── Read streaming ───────────────────────────────────────────────
       // AUTOEND handles STOP automatically once n bytes are read — simpler
       // than V1 since the byte count is known upfront here.
-      static uint8_t request_from(uint8_t addr, uint8_t n) {
+      [[nodiscard]] static uint8_t request_from(uint8_t addr, uint8_t n) {
         regs().cr2 = (uint32_t(addr) << 1) | (1u << 10) /*RD_WRN*/
                    | (uint32_t(n) << 16) /*NBYTES*/ | (1u << 25) /*AUTOEND*/
                    | (1u << 13) /*START*/;
         return n;
       }
 
-      static uint8_t read_byte() {
+      [[nodiscard]] static uint8_t read_byte() {
         while (!(regs().isr & (1u << 2)));    // wait RXNE
         return uint8_t(regs().rxdr);
       }

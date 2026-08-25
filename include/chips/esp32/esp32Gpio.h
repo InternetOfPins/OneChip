@@ -35,7 +35,7 @@ namespace hw::esp32 {
       gpio_set_level((gpio_num_t)N, v ? 1 : 0);
 #endif
     }
-    static bool get() {
+    [[nodiscard]] static bool get() {
 #ifdef ARDUINO
       return digitalRead(N) != LOW;
 #else
@@ -56,7 +56,7 @@ namespace hw::esp32 {
       gpio_set_direction((gpio_num_t)N, GPIO_MODE_INPUT);
 #endif
     }
-    static bool get() {
+    [[nodiscard]] static bool get() {
 #ifdef ARDUINO
       return digitalRead(N) != LOW;
 #else
@@ -77,7 +77,7 @@ namespace hw::esp32 {
       gpio_set_pull_mode((gpio_num_t)N, GPIO_PULLUP_ONLY);
 #endif
     }
-    static bool get() { return Esp32InPin<N>::get(); }
+    [[nodiscard]] static bool get() { return Esp32InPin<N>::get(); }
   };
 
 } // hw::esp32

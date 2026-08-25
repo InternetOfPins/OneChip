@@ -36,7 +36,7 @@ namespace avr {
         ADCSRA = uint8_t(_BV(ADEN) | uint8_t(Div));
         Base::begin();
       }
-      static uint16_t read(uint8_t channel) {
+      [[nodiscard]] static uint16_t read(uint8_t channel) {
         ADMUX = uint8_t((ADMUX & 0xF0) | (channel & 0x0F));
         #if defined(ADCSRB) && defined(MUX5)
           if(channel & 0x10) ADCSRB |= _BV(MUX5);

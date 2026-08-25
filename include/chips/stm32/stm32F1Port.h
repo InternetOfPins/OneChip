@@ -60,8 +60,8 @@ namespace stm32 {
         *reinterpret_cast<volatile uint32_t*>(RCC_APB2ENR_ADDR) |= (1u << RCC_BIT);
       }
 
-      static Unit pin()        { return Unit(regs().idr); }
-      static Unit port()       { return Unit(regs().odr); }
+      [[nodiscard]] static Unit pin()        { return Unit(regs().idr); }
+      [[nodiscard]] static Unit port()       { return Unit(regs().odr); }
       static void port(Unit v) { regs().odr = v; }
 
       static void bsrr_set(Unit mask) { regs().bsrr = mask; }
@@ -78,7 +78,7 @@ namespace stm32 {
         regs().crh = (regs().crh & ~f1_crx_clear(mask,8)) | f1_crx_in(mask,8);
       }
 
-      static Unit ddr() { return 0; }
+      [[nodiscard]] static Unit ddr() { return 0; }
       static void dir(Unit mask) { dir_out(mask); }
     };
   };

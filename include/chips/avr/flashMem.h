@@ -33,11 +33,11 @@ namespace avr {
         boot_rww_enable();
       }
 
-      static uint8_t read(uint32_t addr) {
+      [[nodiscard]] static uint8_t read(uint32_t addr) {
         return pgm_read_byte(addr);
       }
 
-      static uint16_t readWord(uint32_t addr) {
+      [[nodiscard]] static uint16_t readWord(uint32_t addr) {
         return pgm_read_word(addr);
       }
     };

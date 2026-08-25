@@ -39,7 +39,7 @@ namespace hw::avr {
         SPSR = spsr;
       }
 
-      static uint8_t spi_transfer(uint8_t b) {
+      [[nodiscard]] static uint8_t spi_transfer(uint8_t b) {
         SPDR = b;
         while (!(SPSR & (1<<SPIF)));
         return SPDR;
@@ -58,7 +58,7 @@ namespace hw::avr {
       SPCR   = (1<<SPE)|(1<<MSTR);
       SPSR  |= (1<<SPI2X);                    // FOSC/2
     }
-    static uint8_t transfer(uint8_t b) {
+    [[nodiscard]] static uint8_t transfer(uint8_t b) {
       SPDR = b;
       while (!(SPSR & (1<<SPIF)));
       return SPDR;

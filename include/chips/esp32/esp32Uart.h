@@ -39,20 +39,20 @@ namespace hw::esp32 {
         else return Serial2;
       }
 
-      static bool available() { return port().available() > 0; }
+      [[nodiscard]] static bool available() { return port().available() > 0; }
       static void putch(uint8_t c) { port().write(c); }
-      static uint8_t getch() { return (uint8_t)port().read(); }
+      [[nodiscard]] static uint8_t getch() { return (uint8_t)port().read(); }
       static void uart_init(uint32_t baud) { port().begin(baud, SERIAL_8N1, RxPin, TxPin); }
 #else
       static constexpr uart_port_t uart_num = (uart_port_t)N;
 
-      static bool available() {
+      [[nodiscard]] static bool available() {
         size_t n = 0;
         uart_get_buffered_data_len(uart_num, &n);
         return n > 0;
       }
       static void putch(uint8_t c) { uart_write_bytes(uart_num, (const char*)&c, 1); }
-      static uint8_t getch() {
+      [[nodiscard]] static uint8_t getch() {
         uint8_t c = 0;
         uart_read_bytes(uart_num, &c, 1, portMAX_DELAY);
         return c;

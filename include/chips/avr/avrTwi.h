@@ -87,14 +87,14 @@ namespace hw::avr {
     // read_byte: clocks each byte out; ACKs all but the last, then sends STOP.
     inline static uint8_t _rcount = 0;
 
-    static uint8_t request_from(uint8_t addr, uint8_t n) {
+    [[nodiscard]] static uint8_t request_from(uint8_t addr, uint8_t n) {
       _rcount = n;
       _start();
       _write(uint8_t((addr << 1) | 1));  // SLA+R
       return n;
     }
 
-    static uint8_t read_byte() {
+    [[nodiscard]] static uint8_t read_byte() {
       if (_rcount > 1) {
         TWCR = (1<<TWINT)|(1<<TWEN)|(1<<TWEA);  // ACK — more to come
       } else {
