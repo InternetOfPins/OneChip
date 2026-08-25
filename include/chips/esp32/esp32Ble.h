@@ -80,6 +80,14 @@ namespace hw::esp32 {
       static inline BLECharacteristic* _table[N]   = {};
       static inline volatile bool      _written[N] = {};
 
+      // The BLE2902/Esp32BleWriteCb/Esp32BleServerCb objects allocated below are
+      // never freed — this SDK doesn't take ownership of them (its own
+      // ~BLECharacteristic() is an empty stub, and neither BLEDescriptorMap nor
+      // setCallbacks() ever calls delete on what's passed in — confirmed against
+      // framework-arduinoespressif32's own source). begin() runs once at startup
+      // and never returns on a real device, so this is a one-time allocation, not
+      // an accumulating leak — deliberate, not the "SDK owns it" pattern it
+      // resembles.
       template<typename C, typename... Rest>
       static void _reg(BLEService* svc) {
         static_assert(C::id < N, "Characteristic id must be < characteristic count");

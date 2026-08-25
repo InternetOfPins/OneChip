@@ -80,6 +80,13 @@ namespace hw::nrf52 {
         for (uint16_t i = 0; i < N; i++) if (_table[i] == chr) { _written[i] = true; break; }
       }
 
+      // Heap-allocated and never freed — matches this SDK's own idiom (every
+      // Bluefruit example declares characteristics at global/static scope) rather
+      // than transferring ownership to it: ~BLECharacteristic()'s one real cleanup
+      // call is itself commented out in the SDK's own source, so nothing ever
+      // deletes this either way. begin() runs once at startup and never returns
+      // on a real device, so this is a one-time allocation, not an accumulating
+      // leak — deliberate, not SDK-owned/managed.
       template<typename C, typename... Rest>
       static void _reg() {
         static_assert(C::id < N, "Characteristic id must be < characteristic count");
