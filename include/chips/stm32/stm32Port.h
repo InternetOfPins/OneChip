@@ -252,7 +252,7 @@ namespace stm32 {
 //   #define STM32L4
 //   #include <onePin/onePin.h>
 //   #include <chips/stm32/stm32Port.h>
-//   #include <OneBit.h>
+//   #include <oneBit/oneBit.h>
 //   using namespace onePin; using namespace hw::stm32; using namespace oneBit;
 //
 //   using Led  = APIOf<Stm32OutPin, Mask<Pins<5>>, chip::PortB>;
