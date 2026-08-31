@@ -9,6 +9,12 @@
  * Provides the same user API: begin_write/write_byte/end_write/send/
  * request_from/read_byte.
  *
+ * The V1 block (F1/F4) locks up with BUSY stuck after sustained back-to-back
+ * transfers, so every status poll is bounded (kSpins) and end_write() waits
+ * for the bus to go idle after STOP; a stall or BERR/ARLO/AF runs recover()
+ * (SWRST + re-init) and bumps the public `fault_count` — the void bus API is
+ * unchanged, `fault_count` is how a caller notices a dropped transfer.
+ *
  * I2C register layout (F1 and F4 share identical offsets):
  *   0x00  CR1   — PE=0, START=8, STOP=9, ACK=10, SWRST=15
  *   0x04  CR2   — FREQ[5:0] (peripheral clock in MHz)
@@ -150,6 +156,46 @@ namespace hw::stm32 {
         return *reinterpret_cast<stm32_i2c_regs*>(BASE);
       }
 
+      // The V1 I2C block (F1/F4) is known to lock up with BUSY stuck after
+      // sustained back-to-back transfers — every SR poll below is bounded and
+      // a stall triggers recover() (SWRST + re-init) rather than spinning
+      // forever. kSpins is ~10 ms at any real ApbHz: >100x a 100 kHz byte
+      // time, so a healthy bus never trips it.
+      static constexpr uint32_t kSpins = 100000u;
+
+      // Bumped on every wedge recovered. The bus API is void-returning, so
+      // this latch is how a caller that cares can tell a transfer was dropped.
+      inline static volatile uint16_t fault_count = 0;
+
+      // Wait for any bit in `mask` to set in SR1. false = timed out, or the
+      // hardware flagged BERR / ARLO / AF (NACK) — all of which mean this
+      // transfer is not completing.
+      static bool wait_sr1(uint32_t mask) {
+        for (uint32_t n = kSpins; n; --n) {
+          uint32_t s = regs().sr1;
+          if (s & mask) return true;
+          if (s & ((1u << 8) | (1u << 9) | (1u << 10))) return false; // BERR|ARLO|AF
+        }
+        return false;
+      }
+
+      static bool wait_busy_clear() {
+        for (uint32_t n = kSpins; n; --n)
+          if (!(regs().sr2 & (1u << 1))) return true;
+        return false;
+      }
+
+      // Full peripheral reset: PE low, software reset, re-init. Clears a stuck
+      // BUSY (confirmed on real F103 hardware) and any latched error.
+      static void recover() {
+        ++fault_count;
+        _rcount = 0;
+        regs().cr1 &= ~(1u << 0);   // PE = 0
+        regs().cr1 |=  (1u << 15);  // SWRST
+        regs().cr1 &= ~(1u << 15);
+        twi_init(Freq);
+      }
+
       // twi_init — called by begin() below, exposed for TwiAPI contract
       static void twi_init(uint32_t freq) {
         PinCfg::clock_enable();
@@ -185,21 +231,25 @@ namespace hw::stm32 {
 
       // ── Write streaming ──────────────────────────────────────────────
       static void begin_write(uint8_t addr) {
+        if (regs().sr2 & (1u << 1))                  // bus still BUSY from last txn
+          if (!wait_busy_clear()) { recover(); }
         regs().cr1 |= (1u << 8);                    // START
-        while (!(regs().sr1 & (1u << 0)));           // wait SB
+        if (!wait_sr1(1u << 0)) { recover(); return; }   // SB
         regs().dr = addr << 1;                        // SLA+W
-        while (!(regs().sr1 & (1u << 1)));           // wait ADDR
+        if (!wait_sr1(1u << 1)) { recover(); return; }   // ADDR (also fails on NACK)
         (void)regs().sr1; (void)regs().sr2;          // clear ADDR
       }
 
       static void write_byte(uint8_t b) {
-        while (!(regs().sr1 & (1u << 7)));           // wait TxE
+        if (!wait_sr1(1u << 7)) { recover(); return; }   // TxE
         regs().dr = b;
       }
 
       static void end_write() {
-        while (!(regs().sr1 & (1u << 2)));           // wait BTF
+        if (!wait_sr1(1u << 2)) { recover(); return; }   // BTF
         regs().cr1 |= (1u << 9);                    // STOP
+        wait_busy_clear();                           // let STOP finish — next
+                                                     // begin_write starts idle
       }
 
       static void send(uint8_t addr, const uint8_t* data, uint8_t len) {
@@ -224,10 +274,12 @@ namespace hw::stm32 {
 
       [[nodiscard]] static uint8_t request_from(uint8_t addr, uint8_t n) {
         _rcount = n;
+        if (regs().sr2 & (1u << 1))
+          if (!wait_busy_clear()) { recover(); }
         regs().cr1 |= (1u << 10) | (1u << 8);       // ACK=1, START
-        while (!(regs().sr1 & (1u << 0)));            // wait SB
+        if (!wait_sr1(1u << 0)) { recover(); _rcount = 0; return 0; }   // SB
         regs().dr = uint8_t((addr << 1) | 1u);       // SLA+R
-        while (!(regs().sr1 & (1u << 1)));            // wait ADDR
+        if (!wait_sr1(1u << 1)) { recover(); _rcount = 0; return 0; }   // ADDR / NACK
         if (n == 1u) {
           regs().cr1 &= ~(1u << 10);                 // clear ACK before SR2 read
           (void)regs().sr1; (void)regs().sr2;         // clear ADDR
@@ -241,12 +293,12 @@ namespace hw::stm32 {
       [[nodiscard]] static uint8_t read_byte() {
         if (_rcount == 1u) {
           // STOP already set in request_from (n==1) or by previous read_byte (n>1 last)
-          while (!(regs().sr1 & (1u << 6)));          // wait RxNE
+          if (!wait_sr1(1u << 6)) { recover(); return 0; }   // RxNE
           _rcount = 0;
           return uint8_t(regs().dr);
         }
         if (_rcount == 2u) {
-          while (!(regs().sr1 & (1u << 2)));          // wait BTF (both shift+DR ready)
+          if (!wait_sr1(1u << 2)) { recover(); return 0; }   // BTF
           regs().cr1 |= (1u << 9);                   // STOP
           uint8_t b = uint8_t(regs().dr);
           _rcount--;
@@ -254,10 +306,10 @@ namespace hw::stm32 {
         }
         // n >= 3: normal ACK read
         if (_rcount == 3u) {
-          while (!(regs().sr1 & (1u << 2)));          // wait BTF
+          if (!wait_sr1(1u << 2)) { recover(); return 0; }   // BTF
           regs().cr1 &= ~(1u << 10);                 // clear ACK (NACK next)
         } else {
-          while (!(regs().sr1 & (1u << 6)));          // wait RxNE
+          if (!wait_sr1(1u << 6)) { recover(); return 0; }   // RxNE
         }
         uint8_t b = uint8_t(regs().dr);
         _rcount--;
@@ -348,6 +400,31 @@ namespace hw::stm32 {
         return *reinterpret_cast<stm32_i2c_v2_regs*>(BASE);
       }
 
+      // Bounded polls, matching Stm32I2cCore — a stalled ISR flag (or a
+      // NACKF/BERR/ARLO/OVR error) triggers recover() instead of an infinite
+      // spin. V2 recovery is a PE low/high cycle (RM: PE=0 resets the FSM).
+      static constexpr uint32_t kSpins = 100000u;
+      inline static volatile uint16_t fault_count = 0;
+
+      static bool wait_isr(uint32_t mask) {
+        for (uint32_t n = kSpins; n; --n) {
+          uint32_t s = regs().isr;
+          if (s & mask) return true;
+          if (s & ((1u << 4) | (1u << 8) | (1u << 9) | (1u << 10))) // NACKF|BERR|ARLO|OVR
+            return false;
+        }
+        return false;
+      }
+
+      static void recover() {
+        ++fault_count;
+        _first = true;
+        regs().cr1 &= ~(1u << 0);   // PE = 0 — resets the peripheral state machine
+        for (volatile int i = 0; i < 8; ++i) {}   // hold >= 3 APB cycles
+        regs().icr = 0x00003F38u;   // clear all error/STOPF flags
+        regs().cr1 |= (1u << 0);    // PE = 1
+      }
+
       static void twi_init(uint32_t /*freq — baked into TIMINGR at compile time*/) {
         PinCfg::clock_enable();
         PinCfg::pin_config();
@@ -375,18 +452,18 @@ namespace hw::stm32 {
 
       static void write_byte(uint8_t b) {
         if (!_first) {
-          while (!(regs().isr & (1u << 7)));  // wait TCR
+          if (!wait_isr(1u << 7)) { recover(); return; }   // TCR
           regs().cr2 = (regs().cr2 & ~0x00FF0000u) | (1u << 16);  // re-arm NBYTES=1
         }
         _first = false;
-        while (!(regs().isr & (1u << 1)));    // wait TXIS
+        if (!wait_isr(1u << 1)) { recover(); return; }     // TXIS
         regs().txdr = b;
       }
 
       static void end_write() {
-        while (!(regs().isr & (1u << 7)));    // wait TCR (last byte accepted)
+        if (!wait_isr(1u << 7)) { recover(); return; }     // TCR (last byte accepted)
         regs().cr2 |= (1u << 14);             // STOP
-        while (!(regs().isr & (1u << 5)));    // wait STOPF
+        if (!wait_isr(1u << 5)) { recover(); return; }     // STOPF
         regs().icr = (1u << 5);               // clear STOPF
       }
 
@@ -413,7 +490,7 @@ namespace hw::stm32 {
       }
 
       [[nodiscard]] static uint8_t read_byte() {
-        while (!(regs().isr & (1u << 2)));    // wait RXNE
+        if (!wait_isr(1u << 2)) { recover(); return 0; }   // RXNE
         return uint8_t(regs().rxdr);
       }
     };

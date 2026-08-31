@@ -38,6 +38,43 @@ namespace hw::stm32 {
     rcc_cfgr = (rcc_cfgr & ~0x3u) | 0x2u;   // SW = PLL
     while ((rcc_cfgr & 0xCu) != 0x8u);       // wait SWS = PLL
   }
+
+  // ============================================================
+  // STM32F1 PLL helper — called from SysClock<64MHz>::begin()
+  // Configures: Flash 2WS → PLL = HSI/2 ×16 → APB1 /2 → switch.
+  // No HSE/crystal dependency (HSI is always running post-reset), so
+  // no hang risk. 64 MHz is the HSI PLL ceiling on F1 (HSI/2 ×16), and
+  // matches what stm32f1xx-hal's sysclk(72.MHz()) actually delivers on
+  // HSI — the Rust bridge reuses this exact config.
+  // Full switch-down/off/reconfigure/on sequence: the CMSIS framework
+  // may already have the PLL running on HSE at 72 MHz before main().
+  // ============================================================
+  inline void stm32f1_pll_64mhz() {
+    volatile uint32_t& flash_acr = *reinterpret_cast<volatile uint32_t*>(0x40022000u);
+    volatile uint32_t& rcc_cr    = *reinterpret_cast<volatile uint32_t*>(0x40021000u);
+    volatile uint32_t& rcc_cfgr  = *reinterpret_cast<volatile uint32_t*>(0x40021004u);
+
+    flash_acr = (flash_acr & ~0x7u) | 0x2u;  // 2 wait states for 64 MHz
+
+    rcc_cr |= (1u << 0);                      // HSION
+    while (!(rcc_cr & (1u << 1)));            // wait HSIRDY
+
+    rcc_cfgr &= ~0x3u;                        // SW = HSI
+    while ((rcc_cfgr & 0xCu) != 0x0u);        // wait SWS = HSI
+
+    rcc_cr &= ~(1u << 24);                    // PLLOFF
+    while (rcc_cr & (1u << 25));              // wait !PLLRDY
+
+    // PLL: source = HSI/2 (4 MHz), multiplier = ×16 → 64 MHz
+    rcc_cfgr = (rcc_cfgr & ~0x3F0000u) | 0x380000u;  // PLLSRC=HSI/2, PLLMUL=×16
+    rcc_cfgr = (rcc_cfgr & ~0x700u)    | 0x400u;     // APB1 = HCLK/2 = 32 MHz
+
+    rcc_cr |= (1u << 24);                     // PLLON
+    while (!(rcc_cr & (1u << 25)));           // wait PLLRDY
+
+    rcc_cfgr = (rcc_cfgr & ~0x3u) | 0x2u;   // SW = PLL
+    while ((rcc_cfgr & 0xCu) != 0x8u);       // wait SWS = PLL
+  }
 #endif
 
   // ARM Cortex-M SysTick registers (fixed address, all Cortex-M cores)
@@ -68,7 +105,8 @@ namespace hw::stm32 {
 
       static void begin() {
 #if defined(STM32F1xx)
-        if constexpr (CpuHz == 72000000UL) stm32f1_pll_72mhz();
+        if constexpr      (CpuHz == 72000000UL) stm32f1_pll_72mhz();
+        else if constexpr (CpuHz == 64000000UL) stm32f1_pll_64mhz();
 #endif
         systick_hw().load = CpuHz / 1000 - 1;  // reload for 1ms tick
         systick_hw().val  = 0;
