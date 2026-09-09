@@ -4,7 +4,7 @@
  * @brief AVR USART hardware core — register map only, no protocol layer.
  *
  * ATmega328/2560/1284 register layout (identical across all USARTs):
- *   BASE+0  UCSRnA  (RXCn=7, TXCn=6, UDREn=5, ...)
+ *   BASE+0  UCSRnA  (RXCn=7, TXCn=6, UDREn=5, U2Xn=1 → double-speed)
  *   BASE+1  UCSRnB  (RXENn=4, TXENn=3, ...)
  *   BASE+2  UCSRnC  (UCSZn1=2, UCSZn0=1 → 8-bit frame)
  *   BASE+3  (reserved)
@@ -57,11 +57,17 @@ namespace hw::avr {
         return regs().udr;
       }
 
-      // baud is a compile-time constant when called from Uart<BaudRate>::begin()
+      // baud/CpuHz are compile-time constants when called from
+      // Uart<BaudRate>::begin() — this folds to two immediate stores.
       static void uart_init(uint32_t baud) {
-        const uint16_t ubrr = CpuHz / 16 / baud - 1;
-        regs().ubrrh = ubrr >> 8;
-        regs().ubrrl = ubrr;
+        // Double-speed by default (matches Arduino): normal mode can't hit
+        // 115200 @ 16 MHz within tolerance. Fall back only on 12-bit overflow.
+        uint32_t ubrr = (CpuHz + 4UL * baud) / (8UL * baud) - 1;   // rounded, U2X
+        bool u2x = true;
+        if (ubrr > 4095) { u2x = false; ubrr = (CpuHz + 8UL * baud) / (16UL * baud) - 1; }
+        regs().ucsra = u2x ? (1u << 1) : 0;    // U2Xn; other bits RO / write-1-to-clear
+        regs().ubrrh = uint8_t(ubrr >> 8);
+        regs().ubrrl = uint8_t(ubrr);
         regs().ucsrb = (1u << 4) | (1u << 3);  // RXENn | TXENn
         regs().ucsrc = (1u << 2) | (1u << 1);  // UCSZn1:0 = 11 → 8-bit
       }
