@@ -40,6 +40,7 @@ namespace hw::esp32 {
       }
 
       [[nodiscard]] static bool available() { return port().available() > 0; }
+      [[nodiscard]] static bool ready() { return port().availableForWrite() > 0; }
       static void putch(uint8_t c) { port().write(c); }
       [[nodiscard]] static uint8_t getch() { return (uint8_t)port().read(); }
       static void uart_init(uint32_t baud) { port().begin(baud, SERIAL_8N1, RxPin, TxPin); }
@@ -51,6 +52,9 @@ namespace hw::esp32 {
         uart_get_buffered_data_len(uart_num, &n);
         return n > 0;
       }
+      // No TX ring buffer installed, so no per-slot query: this is true only when
+      // TX is fully drained, not merely when one FIFO slot is free.
+      [[nodiscard]] static bool ready() { return uart_wait_tx_done(uart_num, 0) == ESP_OK; }
       static void putch(uint8_t c) { uart_write_bytes(uart_num, (const char*)&c, 1); }
       [[nodiscard]] static uint8_t getch() {
         uint8_t c = 0;

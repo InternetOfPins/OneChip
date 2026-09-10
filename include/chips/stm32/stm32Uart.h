@@ -147,6 +147,7 @@ namespace hw::stm32 {
       }
 
       [[nodiscard]] static bool available() { return regs().sr & (1u << 5); }  // RXNE
+      [[nodiscard]] static bool ready()     { return regs().sr & (1u << 7); }  // TXE
 
       static void putch(uint8_t c) {
         while (!(regs().sr & (1u << 7)));  // wait TXE
@@ -208,6 +209,7 @@ namespace hw::stm32 {
       }
 
       [[nodiscard]] static bool available() { return regs().isr & (1u << 5); }  // RXNE
+      [[nodiscard]] static bool ready()     { return regs().isr & (1u << 7); }  // TXE
 
       static void putch(uint8_t c) {
         while (!(regs().isr & (1u << 7)));  // wait TXE

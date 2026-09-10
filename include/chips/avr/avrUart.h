@@ -46,6 +46,7 @@ namespace hw::avr {
       }
 
       [[nodiscard]] static bool available() { return regs().ucsra & (1u << 7); }  // RXCn
+      [[nodiscard]] static bool ready()     { return regs().ucsra & (1u << 5); }  // UDREn
 
       static void putch(uint8_t c) {
         while (!(regs().ucsra & (1u << 5)));  // wait UDREn
