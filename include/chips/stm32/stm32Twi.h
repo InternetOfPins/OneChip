@@ -163,20 +163,27 @@ namespace hw::stm32 {
       // time, so a healthy bus never trips it.
       static constexpr uint32_t kSpins = 100000u;
 
-      // Bumped on every wedge recovered. The bus API is void-returning, so
-      // this latch is how a caller that cares can tell a transfer was dropped.
+      // Bumped on every wedge recovered (never on an address NACK): the latch that tells a caller a transfer
+      // was dropped. cause() says why the last operation failed.
       inline static volatile uint16_t fault_count = 0;
+      inline static oneBus::TwiCause _cause = oneBus::TwiCause::None;
+      inline static bool _open = false;   // this transaction holds the bus
+      inline static bool _ok   = false;   // and everything so far was acknowledged
+      inline static bool _wrote = false;  // and at least one data byte was written
 
-      // Wait for any bit in `mask` to set in SR1. false = timed out, or the
-      // hardware flagged BERR / ARLO / AF (NACK) — all of which mean this
-      // transfer is not completing.
-      static bool wait_sr1(uint32_t mask) {
+      enum Wait : uint8_t { Got, Nack, BusErr, ArbLost, Timeout };
+
+      // Wait for any bit in `mask` to set in SR1. Anything else is told apart: AF (NACK), BERR, ARLO, or nothing
+      // within kSpins. AF is not a fault: the caller sends the STOP and clears it.
+      static Wait wait_sr1(uint32_t mask) {
         for (uint32_t n = kSpins; n; --n) {
           uint32_t s = regs().sr1;
-          if (s & mask) return true;
-          if (s & ((1u << 8) | (1u << 9) | (1u << 10))) return false; // BERR|ARLO|AF
+          if (s & mask) return Got;
+          if (s & (1u << 10)) return Nack;                            // AF
+          if (s & (1u << 9))  return ArbLost;                         // ARLO
+          if (s & (1u << 8))  return BusErr;                          // BERR
         }
-        return false;
+        return Timeout;
       }
 
       static bool wait_busy_clear() {
@@ -185,15 +192,38 @@ namespace hw::stm32 {
         return false;
       }
 
+      static void setCause(Wait w) {
+        _cause = w == Nack ? oneBus::TwiCause::Nack : w == ArbLost ? oneBus::TwiCause::ArbLost
+               : w == BusErr ? oneBus::TwiCause::BusError : oneBus::TwiCause::Timeout;
+      }
+      static oneBus::TwiCause cause() { return _cause; }
+
       // Full peripheral reset: PE low, software reset, re-init. Clears a stuck
       // BUSY (confirmed on real F103 hardware) and any latched error.
       static void recover() {
         ++fault_count;
         _rcount = 0;
+        _open = false;
         regs().cr1 &= ~(1u << 0);   // PE = 0
         regs().cr1 |=  (1u << 15);  // SWRST
         regs().cr1 &= ~(1u << 15);
         twi_init(Freq);
+      }
+
+      // A wait that did not end in Got: an address or data NACK gets a clean STOP and AF cleared (rc_w0), as ST's
+      // HAL_I2C_IsDeviceReady does; anything else is a wedge and gets the full recovery.
+      static void failed(Wait w) {
+        setCause(w);
+        _ok = false;
+        if (w == Nack) {
+          regs().cr1 |= (1u << 9);                    // STOP
+          regs().sr1 = ~(1u << 10);                   // clear AF
+          regs().cr1 &= ~(1u << 10);                  // ACK off: a NACKed SLA+R left it set
+          if (!wait_busy_clear()) { setCause(Timeout); recover(); }
+        } else {
+          recover();
+        }
+        _open = false;
       }
 
       // twi_init — called by begin() below, exposed for TwiAPI contract
@@ -230,39 +260,56 @@ namespace hw::stm32 {
       }
 
       // ── Write streaming ──────────────────────────────────────────────
-      static void begin_write(uint8_t addr) {
+      // begin_write: false when the address did not answer (clean STOP, no recovery). end_write: true iff the
+      // whole write was acknowledged.
+      static bool begin_write(uint8_t addr) {
+        _cause = oneBus::TwiCause::None; _open = false; _ok = false; _wrote = false;
         if (regs().sr2 & (1u << 1))                  // bus still BUSY from last txn
           if (!wait_busy_clear()) { recover(); }
         regs().cr1 |= (1u << 8);                    // START
-        if (!wait_sr1(1u << 0)) { recover(); return; }   // SB
+        Wait w = wait_sr1(1u << 0);                 // SB
+        if (w) { failed(w); return false; }
         regs().dr = addr << 1;                        // SLA+W
-        if (!wait_sr1(1u << 1)) { recover(); return; }   // ADDR (also fails on NACK)
+        w = wait_sr1(1u << 1);                        // ADDR (AF: NACK)
+        if (w) { failed(w); return false; }
         (void)regs().sr1; (void)regs().sr2;          // clear ADDR
+        _open = true; _ok = true;
+        return true;
       }
 
       static void write_byte(uint8_t b) {
-        if (!wait_sr1(1u << 7)) { recover(); return; }   // TxE
+        if (!_ok) return;
+        const Wait w = wait_sr1(1u << 7);            // TxE (AF: the previous byte was not acknowledged)
+        if (w) { failed(w); return; }
         regs().dr = b;
+        _wrote = true;
       }
 
-      static void end_write() {
-        if (!wait_sr1(1u << 2)) { recover(); return; }   // BTF
-        regs().cr1 |= (1u << 9);                    // STOP
-        wait_busy_clear();                           // let STOP finish — next
+      static bool end_write() {
+        if (_open) {
+          const Wait w = _wrote ? wait_sr1(1u << 2) : Got;   // BTF; a write of no bytes has nothing to finish
+          if (w) failed(w);
+          else {
+            regs().cr1 |= (1u << 9);                // STOP
+            wait_busy_clear();                       // let STOP finish — next
                                                      // begin_write starts idle
+            _open = false;
+          }
+        }
+        return _ok;
       }
 
-      static void send(uint8_t addr, const uint8_t* data, uint8_t len) {
+      static bool send(uint8_t addr, const uint8_t* data, uint8_t len) {
         begin_write(addr);
         while (len--) write_byte(*data++);
-        end_write();
+        return end_write();
       }
 
       // Single-byte convenience overload -- oneBus::I2cGpio (PCF8574-style
       // GPIO expanders) calls TwiMaster::send(addr, byte) directly, per its
       // own documented interface contract (see oneBus/i2cGpio.h's header
       // comment), not the buffer form above.
-      static void send(uint8_t addr, uint8_t byte) { send(addr, &byte, 1); }
+      static bool send(uint8_t addr, uint8_t byte) { return send(addr, &byte, 1); }
 
       // ── Read streaming ───────────────────────────────────────────────
       // STM32 ACK/STOP timing rules:
@@ -272,14 +319,18 @@ namespace hw::stm32 {
       // We implement a robust approach for n>=1 using an internal state tracker.
       inline static uint8_t _rcount = 0;
 
+      // request_from returns 0 when the address did not answer (clean STOP, no recovery).
       [[nodiscard]] static uint8_t request_from(uint8_t addr, uint8_t n) {
-        _rcount = n;
+        _cause = oneBus::TwiCause::None; _open = false; _rcount = 0;
         if (regs().sr2 & (1u << 1))
           if (!wait_busy_clear()) { recover(); }
         regs().cr1 |= (1u << 10) | (1u << 8);       // ACK=1, START
-        if (!wait_sr1(1u << 0)) { recover(); _rcount = 0; return 0; }   // SB
+        Wait w = wait_sr1(1u << 0);                 // SB
+        if (w) { failed(w); return 0; }
         regs().dr = uint8_t((addr << 1) | 1u);       // SLA+R
-        if (!wait_sr1(1u << 1)) { recover(); _rcount = 0; return 0; }   // ADDR / NACK
+        w = wait_sr1(1u << 1);                       // ADDR / NACK
+        if (w) { failed(w); return 0; }
+        _rcount = n;
         if (n == 1u) {
           regs().cr1 &= ~(1u << 10);                 // clear ACK before SR2 read
           (void)regs().sr1; (void)regs().sr2;         // clear ADDR
@@ -291,14 +342,17 @@ namespace hw::stm32 {
       }
 
       [[nodiscard]] static uint8_t read_byte() {
+        if (_rcount == 0u) return 0xFF;              // nothing was requested, or the request was not acknowledged
         if (_rcount == 1u) {
           // STOP already set in request_from (n==1) or by previous read_byte (n>1 last)
-          if (!wait_sr1(1u << 6)) { recover(); return 0; }   // RxNE
+          const Wait w = wait_sr1(1u << 6);          // RxNE
+          if (w) { failed(w); return 0; }
           _rcount = 0;
           return uint8_t(regs().dr);
         }
         if (_rcount == 2u) {
-          if (!wait_sr1(1u << 2)) { recover(); return 0; }   // BTF
+          const Wait w = wait_sr1(1u << 2);          // BTF
+          if (w) { failed(w); return 0; }
           regs().cr1 |= (1u << 9);                   // STOP
           uint8_t b = uint8_t(regs().dr);
           _rcount--;
@@ -306,10 +360,12 @@ namespace hw::stm32 {
         }
         // n >= 3: normal ACK read
         if (_rcount == 3u) {
-          if (!wait_sr1(1u << 2)) { recover(); return 0; }   // BTF
+          const Wait w = wait_sr1(1u << 2);          // BTF
+          if (w) { failed(w); return 0; }
           regs().cr1 &= ~(1u << 10);                 // clear ACK (NACK next)
         } else {
-          if (!wait_sr1(1u << 6)) { recover(); return 0; }   // RxNE
+          const Wait w = wait_sr1(1u << 6);          // RxNE
+          if (w) { failed(w); return 0; }
         }
         uint8_t b = uint8_t(regs().dr);
         _rcount--;
@@ -400,29 +456,66 @@ namespace hw::stm32 {
         return *reinterpret_cast<stm32_i2c_v2_regs*>(BASE);
       }
 
-      // Bounded polls, matching Stm32I2cCore — a stalled ISR flag (or a
-      // NACKF/BERR/ARLO/OVR error) triggers recover() instead of an infinite
-      // spin. V2 recovery is a PE low/high cycle (RM: PE=0 resets the FSM).
+      // Bounded polls, matching Stm32I2cCore. A stalled ISR flag, BERR, ARLO or OVR triggers recover() instead of an
+      // infinite spin (V2 recovery is a PE low/high cycle, RM: PE=0 resets the FSM); NACKF does not: it gets a clean
+      // stop, as ST's HAL does, and never counts as a fault.
       static constexpr uint32_t kSpins = 100000u;
       inline static volatile uint16_t fault_count = 0;
+      inline static oneBus::TwiCause _cause = oneBus::TwiCause::None;
+      inline static bool _open = false, _ok = false, _wrote = false;
+      inline static uint8_t _left = 0;     // bytes requested and not read yet
 
-      static bool wait_isr(uint32_t mask) {
+      enum Wait : uint8_t { Got, Nack, BusErr, ArbLost, Overrun, Timeout };
+
+      static Wait wait_isr(uint32_t mask) {
         for (uint32_t n = kSpins; n; --n) {
           uint32_t s = regs().isr;
-          if (s & mask) return true;
-          if (s & ((1u << 4) | (1u << 8) | (1u << 9) | (1u << 10))) // NACKF|BERR|ARLO|OVR
-            return false;
+          if (s & mask) return Got;
+          if (s & (1u << 4))  return Nack;                            // NACKF
+          if (s & (1u << 9))  return ArbLost;                         // ARLO
+          if (s & (1u << 8))  return BusErr;                          // BERR
+          if (s & (1u << 10)) return Overrun;                         // OVR
         }
+        return Timeout;
+      }
+
+      static bool wait_flag(uint32_t mask) {
+        for (uint32_t n = kSpins; n; --n) if (regs().isr & mask) return true;
         return false;
       }
+
+      static void setCause(Wait w) {
+        _cause = w == Nack ? oneBus::TwiCause::Nack : w == ArbLost ? oneBus::TwiCause::ArbLost
+               : (w == BusErr || w == Overrun) ? oneBus::TwiCause::BusError : oneBus::TwiCause::Timeout;
+      }
+      static oneBus::TwiCause cause() { return _cause; }
 
       static void recover() {
         ++fault_count;
         _first = true;
+        _open = false;
+        _left = 0;
         regs().cr1 &= ~(1u << 0);   // PE = 0 — resets the peripheral state machine
         for (volatile int i = 0; i < 8; ++i) {}   // hold >= 3 APB cycles
         regs().icr = 0x00003F38u;   // clear all error/STOPF flags
         regs().cr1 |= (1u << 0);    // PE = 1
+      }
+
+      // After a NACK the peripheral stops the transfer itself: wait for STOPF, setting STOP by hand only if it does not
+      // come (as the HAL's I2C_IsErrorOccurred), then clear NACKF and STOPF and drop the transfer's CR2 configuration.
+      static void nackDone() {
+        bool stopped = wait_flag(1u << 5);
+        if (!stopped) { regs().cr2 |= (1u << 14); stopped = wait_flag(1u << 5); }
+        regs().icr = (1u << 4) | (1u << 5);           // NACKCF | STOPCF
+        regs().cr2 = 0;
+        _first = true; _open = false; _left = 0;
+        if (!stopped) { _cause = oneBus::TwiCause::Timeout; recover(); }
+      }
+
+      static void failed(Wait w) {
+        setCause(w);
+        _ok = false;
+        if (w == Nack) nackDone(); else recover();
       }
 
       static void twi_init(uint32_t /*freq — baked into TIMINGR at compile time*/) {
@@ -442,56 +535,108 @@ namespace hw::stm32 {
       // time without a declared total, so each byte is its own RELOAD-mode
       // sub-transfer: NBYTES=1, wait TCR between bytes to re-arm the next one,
       // and finalize with STOP in end_write() (see RM0360 I2C reload mode).
+      // begin_write waits for TXIS (address acknowledged) or NACKF; false when the address did not answer.
       inline static bool _first = true;
 
-      static void begin_write(uint8_t addr) {
-        _first = true;
+      static bool begin_write(uint8_t addr) {
+        _cause = oneBus::TwiCause::None; _first = true; _open = false; _ok = false; _wrote = false;
+        regs().icr = (1u << 4) | (1u << 5);                       // stale NACKF / STOPF
         regs().cr2 = (uint32_t(addr) << 1) | (1u << 16) /*NBYTES=1*/ | (1u << 24) /*RELOAD*/
                    | (1u << 13) /*START*/;
+        const Wait w = wait_isr(1u << 1);                        // TXIS
+        if (w) { failed(w); return false; }
+        _open = true; _ok = true;
+        return true;
       }
 
       static void write_byte(uint8_t b) {
+        if (!_ok) return;
         if (!_first) {
-          if (!wait_isr(1u << 7)) { recover(); return; }   // TCR
+          const Wait w = wait_isr(1u << 7);                      // TCR
+          if (w) { failed(w); return; }
           regs().cr2 = (regs().cr2 & ~0x00FF0000u) | (1u << 16);  // re-arm NBYTES=1
         }
         _first = false;
-        if (!wait_isr(1u << 1)) { recover(); return; }     // TXIS
+        const Wait w = wait_isr(1u << 1);                        // TXIS
+        if (w) { failed(w); return; }
         regs().txdr = b;
+        _wrote = true;
       }
 
-      static void end_write() {
-        if (!wait_isr(1u << 7)) { recover(); return; }     // TCR (last byte accepted)
-        regs().cr2 |= (1u << 14);             // STOP
-        if (!wait_isr(1u << 5)) { recover(); return; }     // STOPF
-        regs().icr = (1u << 5);               // clear STOPF
+      static bool end_write() {
+        if (_open) {
+          const Wait w = _wrote ? wait_isr(1u << 7) : Got;       // TCR (last byte accepted)
+          if (w) failed(w);
+          else {
+            regs().cr2 |= (1u << 14);             // STOP
+            if (!wait_flag(1u << 5)) { _cause = oneBus::TwiCause::Timeout; _ok = false; recover(); }   // STOPF
+            else { regs().icr = (1u << 5); regs().cr2 = 0; }     // clear STOPF
+            _open = false;
+          }
+        }
+        return _ok;
       }
 
-      static void send(uint8_t addr, const uint8_t* data, uint8_t len) {
+      static bool send(uint8_t addr, const uint8_t* data, uint8_t len) {
         begin_write(addr);
         while (len--) write_byte(*data++);
-        end_write();
+        return end_write();
       }
 
       // Single-byte convenience overload -- oneBus::I2cGpio (PCF8574-style
       // GPIO expanders) calls TwiMaster::send(addr, byte) directly, per its
       // own documented interface contract (see oneBus/i2cGpio.h's header
       // comment), not the buffer form above.
-      static void send(uint8_t addr, uint8_t byte) { send(addr, &byte, 1); }
+      static bool send(uint8_t addr, uint8_t byte) { return send(addr, &byte, 1); }
 
       // ── Read streaming ───────────────────────────────────────────────
       // AUTOEND handles STOP automatically once n bytes are read — simpler
-      // than V1 since the byte count is known upfront here.
+      // than V1 since the byte count is known upfront here. request_from waits for the first byte (address
+      // acknowledged) or NACKF, and returns 0 when the address did not answer.
       [[nodiscard]] static uint8_t request_from(uint8_t addr, uint8_t n) {
+        _cause = oneBus::TwiCause::None; _open = false; _left = 0;
+        regs().icr = (1u << 4) | (1u << 5);
         regs().cr2 = (uint32_t(addr) << 1) | (1u << 10) /*RD_WRN*/
                    | (uint32_t(n) << 16) /*NBYTES*/ | (1u << 25) /*AUTOEND*/
                    | (1u << 13) /*START*/;
+        const Wait w = wait_isr(1u << 2);                        // RXNE
+        if (w) { failed(w); return 0; }
+        _left = n;
         return n;
       }
 
       [[nodiscard]] static uint8_t read_byte() {
-        if (!wait_isr(1u << 2)) { recover(); return 0; }   // RXNE
+        if (_left == 0) return 0xFF;
+        const Wait w = wait_isr(1u << 2);                        // RXNE
+        if (w) { failed(w); return 0; }
+        --_left;
         return uint8_t(regs().rxdr);
+      }
+
+      // Presence, as ST's HAL_I2C_IsDeviceReady: address only, AUTOEND, no data byte written. The write-probe has
+      // NBYTES = 0 (address, then STOP); the read-probe reads one byte. NACKF is looked at first: on a NACK STOPF is
+      // set as well.
+      static bool probe(uint8_t addr, oneBus::ProbeKind kind) {
+        _cause = oneBus::TwiCause::None; _open = false; _left = 0;
+        const bool rd = kind == oneBus::ProbeKind::Read;
+        regs().icr = (1u << 4) | (1u << 5);
+        regs().cr2 = (uint32_t(addr) << 1) | (rd ? ((1u << 10) | (1u << 16)) : 0u) | (1u << 25) /*AUTOEND*/
+                   | (1u << 13) /*START*/;
+        const uint32_t done = rd ? (1u << 2) : (1u << 5);        // RXNE : STOPF
+        Wait w = Timeout;
+        for (uint32_t n = kSpins; n; --n) {
+          const uint32_t s = regs().isr;
+          if (s & (1u << 4))  { w = Nack;    break; }
+          if (s & (1u << 9))  { w = ArbLost; break; }
+          if (s & (1u << 8))  { w = BusErr;  break; }
+          if (s & (1u << 10)) { w = Overrun; break; }
+          if (s & done)       { w = Got;     break; }
+        }
+        if (w) { failed(w); return false; }
+        if (rd) { (void)regs().rxdr; if (!wait_flag(1u << 5)) { _cause = oneBus::TwiCause::Timeout; recover(); return false; } }
+        regs().icr = (1u << 5);                                  // STOPF
+        regs().cr2 = 0;
+        return true;
       }
     };
   };
