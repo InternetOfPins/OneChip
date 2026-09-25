@@ -93,16 +93,17 @@ namespace hw {
 
 // ── hw::Timeout<N> — one-shot N-ms latch ─────────────────────────────────────
 // Constructed armed: fires (returns true) once N ms after construction or reset().
-// Stays true after firing until reset().
+// Stays true after firing until reset(). Compares elapsed time, so it is correct across
+// the millis() wrap; it must be polled within 2^32 ms of being armed.
 
 namespace hw {
   template<uint32_t Ms>
   struct Timeout {
-    uint32_t _end;
+    uint32_t _start;
     bool     _fired;
-    Timeout() : _end(millis() + Ms), _fired(false) {}
-    void reset() { _end = millis() + Ms; _fired = false; }
-    operator bool() { return _fired ? true : (_fired = (millis() >= _end)); }
-    uint32_t when() const { return _end; }
+    Timeout() : _start(millis()), _fired(false) {}
+    void reset() { _start = millis(); _fired = false; }
+    operator bool() { if (!_fired) _fired = (millis() - _start >= Ms); return _fired; }
+    uint32_t when() const { return _start + Ms; }
   };
 }
