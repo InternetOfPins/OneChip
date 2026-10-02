@@ -81,6 +81,22 @@ led.off();      // PB5 low
 
 ---
 
+### ESP8266 (Xtensa LX106)
+
+**Include**: `<chips/esp8266/esp8266Device.h>` (Arduino framework)
+
+**Devices**: Wemos/LOLIN D1 mini, NodeMCU, ESP-01
+
+| Return | Function | Params | Description |
+|--------|----------|--------|-------------|
+| `OutPin<N>` | `hw::esp8266::OutPin` | GPIO number | Digital output (begin/on/off/set/get) |
+| `InPin<N,Pull>` | `hw::esp8266::InPin` | GPIO number, pull-up | Digital input |
+| core | `hw::esp8266::Esp8266SpiCore` | – | HSPI core (SCK 14, MISO 12, MOSI 13): `spi_init`, `spi_setup(hz, mode)`, `spi_transfer`; CS is the layer above (`oneBus::CsPin`, `oneBus::SpiSlots`) |
+| `Spi<Hz>` | `hw::esp8266::esp8266::Spi` | clock | `SpiMaster<Hz>` over that core |
+| `TwiMaster` | `hw::esp8266::Esp8266TwiMaster<SDA,SCL,Hz>` | pins, clock | I2C over Arduino Wire (bit-banged) |
+
+---
+
 ### ESP32 (32-bit Xtensa)
 
 **Include**: `<chips/esp32/esp32Device.h>`
