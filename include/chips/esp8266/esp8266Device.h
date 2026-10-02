@@ -2,6 +2,8 @@
 #include <hapi/hapi.h>
 #include <chips/esp8266/esp8266SysClock.h>
 #include <chips/esp8266/esp8266Twi.h>
+#include <chips/esp8266/esp8266Spi.h>
+#include <chips/esp8266/esp8266Gpio.h>
 #include <stdint.h>
 
 // ESP8266 (Xtensa LX106) chip catalog.
