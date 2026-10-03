@@ -34,9 +34,13 @@ namespace hw::esp8266 {
   struct Esp8266TwiMaster {
     inline static oneBus::TwiCause _cause = oneBus::TwiCause::None;
 
-    static void begin() {
+    // A reset in the middle of a read leaves the slave holding SDA low, waiting for clocks; a reset of the ESP does
+    // not power-cycle it. Wire.status() (the core's twi_status) clocks SCL until SDA is released, then the bus is
+    // idle again. Returns false if it stays held (no pull-ups, a short, a wedged part).
+    static bool begin() {
       Wire.begin(SDA, SCL);
       Wire.setClock(SclHz);
+      return Wire.status() == 0;   // I2C_OK
     }
 
     // ── Write streaming ────────────────────────────────────────────────
