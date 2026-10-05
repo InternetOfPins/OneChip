@@ -4,6 +4,7 @@
 #include <chips/esp8266/esp8266Twi.h>
 #include <chips/esp8266/esp8266Spi.h>
 #include <chips/esp8266/esp8266Gpio.h>
+#include <chips/esp8266/esp8266Pins.h>
 #include <stdint.h>
 
 // ESP8266 (Xtensa LX106) chip catalog.
@@ -28,7 +29,7 @@ namespace hw::esp8266 {
   namespace chip = esp8266;
 
   /// @brief ESP8266 chip descriptor: GPIO catalog, Twi/Spi aliases, pre-defined board pin maps
-  struct Esp8266Dev {
+  struct Esp8266Dev : Esp8266Pins {
     Esp8266Dev() = delete;
 
     // GPIO — all pins are software PWM capable via analogWrite()
@@ -36,17 +37,7 @@ namespace hw::esp8266 {
     // Safe output pins (no boot strapping): GPIO4, GPIO5, GPIO12, GPIO13, GPIO14
     // Safe input pins: GPIO4, GPIO5, GPIO12, GPIO13, GPIO14, GPIO16
 
-    static constexpr uint8_t D0  = 16;  // NodeMCU D0 — no PWM, no interrupt
-    static constexpr uint8_t D1  =  5;  // NodeMCU D1 — I2C SCL default
-    static constexpr uint8_t D2  =  4;  // NodeMCU D2 — I2C SDA default
-    static constexpr uint8_t D3  =  0;  // NodeMCU D3 — boot strapping (10kΩ pull-up)
-    static constexpr uint8_t D4  =  2;  // NodeMCU D4 — boot strapping, UART1 TX, LED
-    static constexpr uint8_t D5  = 14;  // NodeMCU D5 — SPI CLK
-    static constexpr uint8_t D6  = 12;  // NodeMCU D6 — SPI MISO
-    static constexpr uint8_t D7  = 13;  // NodeMCU D7 — SPI MOSI
-    static constexpr uint8_t D8  = 15;  // NodeMCU D8 — SPI CS, boot strapping (10kΩ pull-down)
-    static constexpr uint8_t RX  =  3;  // UART0 RX
-    static constexpr uint8_t TX  =  1;  // UART0 TX (also used for Serial monitor)
+    // D0..D8, RX, TX and the pins' facts (strap, bootLevel, hasIrq, flash): Esp8266Pins (esp8266Pins.h), a header without the framework
 
     // Default I2C pins (Wire.begin(SDA, SCL))
     static constexpr uint8_t SDA_pin = 4;   // D2
